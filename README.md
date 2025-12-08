@@ -28,23 +28,23 @@ MANCREL: PROJECT SUMMARY (Finalized & Ordered)
         - No polling nonsense. Real-time, reliable, scalable.
 
     (C) AI Layer
-        - Used for:
-            - Email/Message Classification
-            - Intent detection
-            - Priority scoring
-            - Confidence thresholds
-       - AI Auto-Reply System
-            - AI generates draft responses
-            - Auto-send only if confidence high
-            - Human-in-the-loop fallback
-            - Every suggestion logged for auditing
-       - Catalogue-assisted responses
-            - AI pulls product details from the synced catalogue
-            - Helps answer customer queries faster
-       - Decision thresholds:
-            - >= 0.90 → auto-send
-            - 0.60 – 0.89 → requires human approval
-            - < 0.60 → no auto-reply, escalate to human
+    - Used for:
+        - Email/Message Classification
+        - Intent detection
+        - Priority scoring
+        - Confidence thresholds
+    - AI Auto-Reply System
+        - AI generates draft responses
+        - Auto-send only if confidence high
+        - Human-in-the-loop fallback
+        - Every suggestion logged for auditing
+    - Catalogue-assisted responses
+        - AI pulls product details from the synced catalogue
+        - Helps answer customer queries faster
+    - Decision thresholds:
+        - >= 0.90 → auto-send
+        - 0.60 – 0.89 → requires human approval
+        - < 0.60 → no auto-reply, escalate to human
 
     (D) Background Workers
     - You’re using Celery workers + Redis for:
