@@ -3,18 +3,18 @@ A customer relations management systems for products seller. Helps keep track of
 
 MANCREL: PROJECT SUMMARY (Finalized & Ordered)
 1. Core Goal
-- Build Mancrel, an AI-driven all-in-one CRM that:
-- Manages contacts, companies, deals, activities
-- Uses AI to classify incoming messages
-- Generates or auto-sends email replies
-- Continuously syncs an external product catalogue
-- Runs reliably with workers, queues, and real-time event handling
-- Deploys fully within ~11 days
+    - Build Mancrel, an AI-driven all-in-one CRM that:
+    - Manages contacts, companies, deals, activities
+    - Uses AI to classify incoming messages
+    - Generates or auto-sends email replies
+    - Continuously syncs an external product catalogue
+    - Runs reliably with workers, queues, and real-time event handling
+    - Deploys fully within ~11 days
 
 2. Core Techniques & Architecture You’re Using
     (A) Backend Approach
-        _This is for Mr. Yusuff to decide._
-    - Everything containerized with Docker
+        - _This is for Mr. Yusuff to decide._
+        - Everything containerized with Docker
 
     (B) Real-Time Event Handling: Webhooks
     - I'm planning on using webhooks to solve the catalogue-update problem.
@@ -28,54 +28,54 @@ MANCREL: PROJECT SUMMARY (Finalized & Ordered)
         - No polling nonsense. Real-time, reliable, scalable.
 
     (C) AI Layer
-       Used for:
-        - Email/Message Classification
-        - Intent detection
-        - Priority scoring
-        - Confidence thresholds
-       AI Auto-Reply System
-        - AI generates draft responses
-        - Auto-send only if confidence high
-        - Human-in-the-loop fallback
-        - Every suggestion logged for auditing
-       Catalogue-assisted responses
-        - AI pulls product details from the synced catalogue
-        - Helps answer customer queries faster
-       Decision thresholds:
-        - >= 0.90 → auto-send
-        - 0.60 – 0.89 → requires human approval
-        - < 0.60 → no auto-reply, escalate to human
+       - Used for:
+            - Email/Message Classification
+            - Intent detection
+            - Priority scoring
+            - Confidence thresholds
+       - AI Auto-Reply System
+            - AI generates draft responses
+            - Auto-send only if confidence high
+            - Human-in-the-loop fallback
+            - Every suggestion logged for auditing
+       - Catalogue-assisted responses
+            - AI pulls product details from the synced catalogue
+            - Helps answer customer queries faster
+       - Decision thresholds:
+            - >= 0.90 → auto-send
+            - 0.60 – 0.89 → requires human approval
+            - < 0.60 → no auto-reply, escalate to human
 
     (D) Background Workers
-    -> You’re using Celery workers + Redis for:
-    - Webhook event processing
-    - AI inference jobs
-    - Email sending
-    - Catalogue sync
-    - Scheduled fallback pollers
-    - Anything heavy or long-running
-    - The API never blocks. Everything async.
+    - You’re using Celery workers + Redis for:
+        - Webhook event processing
+        - AI inference jobs
+        - Email sending
+        - Catalogue sync
+        - Scheduled fallback pollers
+        - Anything heavy or long-running
+        - The API never blocks. Everything async.
 
     (E) Catalogue Sync Strategy
-    -> Two-layer strategy:
-    - Primary: Webhooks (instant updates)
-    - Fallback: Timed polling (in case webhooks fail)
-    - Catalogue always stays in sync.
+    - Two-layer strategy:
+        - Primary: Webhooks (instant updates)
+        - Fallback: Timed polling (in case webhooks fail)
+        - Catalogue always stays in sync.
 
 3. Key Features Being Built
-- Contact management
-- Company management
-- Deal pipeline (Kanban style)
-- Activities (emails, calls, tasks)
-- Email ingestion (webhook or IMAP)
-- AI classifier
-- AI auto-reply system
-- Catalogue sync system
-- RBAC (Admin, Manager, Rep)
-- Background worker pipeline
-- Minimal analytics
-- Fully deployed frontend + backend
-    _This is the MVP that actually matters._
+    - Contact management
+    - Company management
+    - Deal pipeline (Kanban style)
+    - Activities (emails, calls, tasks)
+    - Email ingestion (webhook or IMAP)
+    - AI classifier
+    - AI auto-reply system
+    - Catalogue sync system
+    - RBAC (Admin, Manager, Rep)
+    - Background worker pipeline
+    - Minimal analytics
+    - Fully deployed frontend + backend
+        - _This is the MVP that actually matters._
 
 4. 11-Day Timeline (Locked & Final)
 - Day 0: Setup
