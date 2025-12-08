@@ -83,51 +83,51 @@ MANCREL: PROJECT SUMMARY (Finalized & Ordered)
     - Docker + docker-compose (FastAPI, Postgres, Redis, Celery)
     - Basic CI pipeline
     Day 1: Auth + DB Schema
-        - Users, Roles, Deals, Activities, Catalogue
-        - JWT auth + RBAC
+    - Users, Roles, Deals, Activities, Catalogue
+    - JWT auth + RBAC
     Day 2: Core Backend APIs
-        - CRUD for contacts, companies
-        - Deals + pipeline movement
-        - Activities
+    - CRUD for contacts, companies
+    - Deals + pipeline movement
+    - Activities
     Day 3: Frontend Skeleton
-        - Login
-        - Contacts page
-        - Deals Kanban
-        - Activity feed
+    - Login
+    - Contacts page
+    - Deals Kanban
+    - Activity feed
     Day 4: Worker Infrastructure
-        - Celery + Redis hooked
-        - Test jobs running
+    - Celery + Redis hooked
+    - Test jobs running
     Day 5: Email Ingestion + Classifier
-        - Endpoint for email events
-        - Classifier pipeline
-        - Logs stored
+    - Endpoint for email events
+    - Classifier pipeline
+    - Logs stored
     Day 6: AI Auto-Reply
-        - LLM integration
-        - Confidence thresholds
-        - Approval workflow
-        - Auto-send for safe emails
+    - LLM integration
+    - Confidence thresholds
+    - Approval workflow
+    - Auto-send for safe emails
     Day 7: Catalogue Sync
-        - Webhook receiver
-        - Signature validation
-        - Upsert logic (idempotent)
-        - Fallback poller
+    - Webhook receiver
+    - Signature validation
+    - Upsert logic (idempotent)
+    - Fallback poller
     Day 8: Reliability Layer
-        - Retries
-        - Dead-letter queue
-        - Monitoring + logging
+    - Retries
+    - Dead-letter queue
+    - Monitoring + logging
     Day 9: UI Polishing
-        - AI suggestion UI
-        - Activity timeline
-        - Catalogue UI section
+    - AI suggestion UI
+    - Activity timeline
+    - Catalogue UI section
     Day 10: Testing
-        - Integration tests
-        - Load smoke testing
-        - Fix bottlenecks
+    - Integration tests
+    - Load smoke testing
+    - Fix bottlenecks
     Day 11: Deployment
-        - Full VPS deployment
-        - Domain mapping
-        - Production smoke tests
-        - Final presentation prep
+    - Full VPS deployment
+    - Domain mapping
+    - Production smoke tests
+    - Final presentation prep
 
 5. Project Identity Finalized
 Name: Mancrel
