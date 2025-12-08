@@ -23,12 +23,12 @@ MANCREL: PROJECT SUMMARY (Finalized & Ordered)
         - Validate signature
         - Store event (idempotent)
         - Queue job in Redis
-        Celery processes update
-        - Catalogue DB stays always fresh
-        - No polling nonsense. Real-time, reliable, scalable.
+        - Celery processes update
+            - Catalogue DB stays always fresh
+            - No polling nonsense. Real-time, reliable, scalable.
 
     (C) AI Layer
-       - Used for:
+        - Used for:
             - Email/Message Classification
             - Intent detection
             - Priority scoring
