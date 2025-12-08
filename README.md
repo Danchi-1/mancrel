@@ -78,52 +78,52 @@ MANCREL: PROJECT SUMMARY (Finalized & Ordered)
     _This is the MVP that actually matters._
 
 4. 11-Day Timeline (Locked & Final)
-Day 0: Setup
+- Day 0: Setup
     - Repo
     - Docker + docker-compose (FastAPI, Postgres, Redis, Celery)
     - Basic CI pipeline
-Day 1: Auth + DB Schema
+- Day 1: Auth + DB Schema
     - Users, Roles, Deals, Activities, Catalogue
     - JWT auth + RBAC
-    Day 2: Core Backend APIs
+- Day 2: Core Backend APIs
     - CRUD for contacts, companies
     - Deals + pipeline movement
     - Activities
-    Day 3: Frontend Skeleton
+- Day 3: Frontend Skeleton
     - Login
     - Contacts page
     - Deals Kanban
     - Activity feed
-    Day 4: Worker Infrastructure
+- Day 4: Worker Infrastructure
     - Celery + Redis hooked
     - Test jobs running
-    Day 5: Email Ingestion + Classifier
+- Day 5: Email Ingestion + Classifier
     - Endpoint for email events
     - Classifier pipeline
     - Logs stored
-    Day 6: AI Auto-Reply
+- Day 6: AI Auto-Reply
     - LLM integration
     - Confidence thresholds
     - Approval workflow
     - Auto-send for safe emails
-    Day 7: Catalogue Sync
+- Day 7: Catalogue Sync
     - Webhook receiver
     - Signature validation
     - Upsert logic (idempotent)
     - Fallback poller
-    Day 8: Reliability Layer
+- Day 8: Reliability Layer
     - Retries
     - Dead-letter queue
     - Monitoring + logging
-    Day 9: UI Polishing
+- Day 9: UI Polishing
     - AI suggestion UI
     - Activity timeline
     - Catalogue UI section
-    Day 10: Testing
+- Day 10: Testing
     - Integration tests
     - Load smoke testing
     - Fix bottlenecks
-    Day 11: Deployment
+- Day 11: Deployment
     - Full VPS deployment
     - Domain mapping
     - Production smoke tests
