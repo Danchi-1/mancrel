@@ -24,8 +24,8 @@ MANCREL: PROJECT SUMMARY (Finalized & Ordered)
         - Store event (idempotent)
         - Queue job in Redis
         - Celery processes update
-            - Catalogue DB stays always fresh
-            - No polling nonsense. Real-time, reliable, scalable.
+        - Catalogue DB stays always fresh
+        - No polling nonsense. Real-time, reliable, scalable.
 
     (C) AI Layer
         - Used for:
