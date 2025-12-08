@@ -79,9 +79,9 @@ MANCREL: PROJECT SUMMARY (Finalized & Ordered)
 
 4. 11-Day Timeline (Locked & Final)
     Day 0: Setup
-        - Repo
-        - Docker + docker-compose (FastAPI, Postgres, Redis, Celery)
-        - Basic CI pipeline
+    - Repo
+    - Docker + docker-compose (FastAPI, Postgres, Redis, Celery)
+    - Basic CI pipeline
     Day 1: Auth + DB Schema
         - Users, Roles, Deals, Activities, Catalogue
         - JWT auth + RBAC
