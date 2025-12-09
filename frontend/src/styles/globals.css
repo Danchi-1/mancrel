@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+  
+  body {
+    @apply bg-bg text-neutral-900 font-sans antialiased;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-6 py-3 bg-accent text-white rounded-lg font-medium 
+           transition-all duration-200 hover:bg-accent-dark 
+           focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2
+           active:scale-95;
+  }
+  
+  .btn-secondary {
+    @apply px-6 py-3 bg-white text-primary border border-neutral-200 rounded-lg 
+           font-medium transition-all duration-200 hover:border-accent hover:text-accent
+           focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2;
+  }
+  
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-neutral-100 
+           transition-shadow duration-200 hover:shadow-md;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-2 border border-neutral-200 rounded-lg
+           focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent
+           transition-all duration-200;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
