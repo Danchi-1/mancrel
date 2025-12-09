@@ -1,244 +1,176 @@
 # Mancrel
-A customer relations management systems for products seller. Helps keep track of things you're selling and the customers you're selling to without ignoring anyone.
 
-MANCREL: PROJECT SUMMARY (Finalized & Ordered)
-1. Core Goal
-    - Build Mancrel, an AI-driven all-in-one CRM that:
-    - Manages contacts, companies, deals, activities
-    - Uses AI to classify incoming messages
-    - Generates or auto-sends email replies
-    - Continuously syncs an external product catalogue
-    - Runs reliably with workers, queues, and real-time event handling
-    - Deploys fully within ~11 days
+A customer relations management system for product sellers. Helps track your products and customers without ignoring anyone.
 
-2. Core Techniques & Architecture You’re Using
-    (A) Backend Approach
-        - _This is for Mr. Yusuff to decide._
-        - Everything containerized with Docker
+## MANCREL: PROJECT SUMMARY (Finalized & Ordered)
 
-    (B) Real-Time Event Handling: Webhooks
-    - I'm planning on using webhooks to solve the catalogue-update problem.
-        My thought up workflow:
-        - External system sends POST → /webhook/catalog
-        - Validate signature
-        - Store event (idempotent)
-        - Queue job in Redis
-        - Celery processes update
-        - Catalogue DB stays always fresh
-        - No polling nonsense. Real-time, reliable, scalable.
+### 1. Core Goal
 
-    (C) AI Layer
-    - Used for:
-        - Email/Message Classification
-        - Intent detection
-        - Priority scoring
-        - Confidence thresholds
-    - AI Auto-Reply System
-        - AI generates draft responses
-        - Auto-send only if confidence high
-        - Human-in-the-loop fallback
-        - Every suggestion logged for auditing
-    - Catalogue-assisted responses
-        - AI pulls product details from the synced catalogue
-        - Helps answer customer queries faster
-    - Decision thresholds:
-        - >= 0.90 → auto-send
-        - 0.60 – 0.89 → requires human approval
-        - < 0.60 → no auto-reply, escalate to human
+Build Mancrel, an AI-driven all-in-one CRM that:
+- Manages contacts, companies, deals, and activities
+- Uses AI to classify incoming messages
+- Generates or auto-sends email replies
+- Continuously syncs an external product catalogue
+- Runs reliably with workers, queues, and real-time event handling
+- Deploys fully within ~11 days
 
-    (D) Background Workers
-    - You’re using Celery workers + Redis for:
-        - Webhook event processing
-        - AI inference jobs
-        - Email sending
-        - Catalogue sync
-        - Scheduled fallback pollers
-        - Anything heavy or long-running
-        - The API never blocks. Everything async.
+### 2. Core Techniques & Architecture
 
-    (E) Catalogue Sync Strategy
-    - Two-layer strategy:
-        - Primary: Webhooks (instant updates)
-        - Fallback: Timed polling (in case webhooks fail)
-        - Catalogue always stays in sync.
+#### (A) Backend Approach
+- Everything containerized with Docker
+- *This is for Mr. Yusuff to decide.*
 
-3. Key Features Being Built
-    - Contact management
-    - Company management
-    - Deal pipeline (Kanban style)
-    - Activities (emails, calls, tasks)
-    - Email ingestion (webhook or IMAP)
-    - AI classifier
-    - AI auto-reply system
-    - Catalogue sync system
-    - RBAC (Admin, Manager, Rep)
-    - Background worker pipeline
-    - Minimal analytics
-    - Fully deployed frontend + backend
-        - _This is the MVP that actually matters._
+#### (B) Real-Time Event Handling: Webhooks
+- Using webhooks to solve the catalogue-update problem
+- Workflow:
+  1. External system sends POST → /webhook/catalog
+  2. Validate signature
+  3. Store event (idempotent)
+  4. Queue job in Redis
+  5. Celery processes update
+  6. Catalogue DB stays always fresh
+  7. No polling nonsense. Real-time, reliable, scalable.
 
-4. 11-Day Timeline (Locked & Final)
-- Day 0: Setup
-    - Repo
-    - Docker + docker-compose (FastAPI, Postgres, Redis, Celery)
-    - Basic CI pipeline
-- Day 1: Auth + DB Schema
-    - Users, Roles, Deals, Activities, Catalogue
-    - JWT auth + RBAC
-- Day 2: Core Backend APIs
-    - CRUD for contacts, companies
-    - Deals + pipeline movement
-    - Activities
-- Day 3: Frontend Skeleton
-    - Login
-    - Contacts page
-    - Deals Kanban
-    - Activity feed
-- Day 4: Worker Infrastructure
-    - Celery + Redis hooked
-    - Test jobs running
-- Day 5: Email Ingestion + Classifier
-    - Endpoint for email events
-    - Classifier pipeline
-    - Logs stored
-- Day 6: AI Auto-Reply
-    - LLM integration
-    - Confidence thresholds
-    - Approval workflow
-    - Auto-send for safe emails
-- Day 7: Catalogue Sync
-    - Webhook receiver
-    - Signature validation
-    - Upsert logic (idempotent)
-    - Fallback poller
-- Day 8: Reliability Layer
-    - Retries
-    - Dead-letter queue
-    - Monitoring + logging
-- Day 9: UI Polishing
-    - AI suggestion UI
-    - Activity timeline
-    - Catalogue UI section
-- Day 10: Testing
-    - Integration tests
-    - Load smoke testing
-    - Fix bottlenecks
-- Day 11: Deployment
-    - Full VPS deployment
-    - Domain mapping
-    - Production smoke tests
-    - Final presentation prep
+#### (C) AI Layer
+- Used for:
+  - Email/Message Classification
+  - Intent detection
+  - Priority scoring
+  - Confidence thresholds
 
-5. Project Identity Finalized
-Name: Mancrel
-Meaning:
-MAN → Management
-CREL → Customer Relations Layer
-    _Why? Short. Practical. Brandable._
+- AI Auto-Reply System:
+  - AI generates draft responses
+  - Auto-send only if confidence high (≥ 0.90)
+  - Human-in-the-loop fallback (0.60–0.89)
+  - No auto-reply for < 0.60 (escalate)
+  - Every suggestion logged for auditing
+  - Catalogue-assisted responses
 
-#### Mr. Ahmad Yusuff is allowed to make changes to any of the backend strategy or this README.md as he sees fit.
+#### (D) Background Workers
+- Celery workers + Redis for:
+  - Webhook event processing
+  - AI inference jobs
+  - Email sending
+  - Catalogue sync
+  - Scheduled fallback pollers
+  - Anything heavy or long-running
+  - The API never blocks. Everything async.
 
-### WHAT THE PROJECT DOES
+#### (E) Catalogue Sync Strategy
+- Two-layer strategy:
+  - Primary: Webhooks (instant updates)
+  - Fallback: Timed polling (in case webhooks fail)
+  - Catalogue always stays in sync
+
+### 3. Key Features Being Built
+- Contact management
+- Company management
+- Deal pipeline (Kanban style)
+- Activities (emails, calls, tasks)
+- Email ingestion (webhook or IMAP)
+- AI classifier
+- AI auto-reply system
+- Catalogue sync system
+- RBAC (Admin, Manager, Rep)
+- Background worker pipeline
+- Minimal analytics
+- Fully deployed frontend + backend
+  - *This is the MVP that actually matters.*
+
+### 4. 11-Day Timeline (Locked & Final)
+
+| Day | Task |
+|-----|------|
+| 0 | Setup: Repo, Docker + docker-compose (FastAPI, Postgres, Redis, Celery), Basic CI pipeline |
+| 1 | Auth + DB Schema: Users, Roles, Deals, Activities, Catalogue, JWT auth + RBAC |
+| 2 | Core Backend APIs: CRUD for contacts, companies, Deals + pipeline movement, Activities |
+| 3 | Frontend Skeleton: Login, Contacts page, Deals Kanban, Activity feed |
+| 4 | Worker Infrastructure: Celery + Redis hooked, Test jobs running |
+| 5 | Email Ingestion + Classifier: Endpoint for email events, Classifier pipeline, Logs stored |
+| 6 | AI Auto-Reply: LLM integration, Confidence thresholds, Approval workflow, Auto-send for safe emails |
+| 7 | Catalogue Sync: Webhook receiver, Signature validation, Upsert logic (idempotent), Fallback poller |
+| 8 | Reliability Layer: Retries, Dead-letter queue, Monitoring + logging |
+| 9 | UI Polishing: AI suggestion UI, Activity timeline, Catalogue UI section |
+| 10 | Testing: Integration tests, Load smoke testing, Fix bottlenecks |
+| 11 | Deployment: Full VPS deployment, Domain mapping, Production smoke tests, Final presentation prep |
+
+### 5. Project Identity Finalized
+- **Name**: Mancrel
+- **Meaning**:
+  - MAN → Management
+  - CREL → Customer Relations Layer
+  - *Why? Short. Practical. Brandable.*
+
+*Mr. Ahmad Yusuff is allowed to make changes to any of the backend strategy or this README.md as he sees fit.*
+
+## WHAT THE PROJECT DOES
 
 MANCREL is an AI-powered, all-in-one CRM built to automate customer relationship management far beyond what traditional CRMs do.
 
-It manages contacts, companies, leads, messages, notes, interactions, preferences then it layers AI on top to turn the CRM from a dumb storage tool into an intelligent assistant.
+### Core Features:
+1. **Data Management**:
+   - Central backend (Postgres + Redis + Vector DB) manages all CRM records: users, customers, messages, catalog data, logs, preferences
 
-At its core, it:
-1. Collects, stores, and organizes customer & company data
-- A central backend (Postgres + Redis + Vector DB) manages all CRM records: users, customers, messages, catalog data, logs, preferences, etc.
+2. **Communication Handling**:
+   - Receives emails, messages (Meta APIs, WhatsApp, Messenger), customer inquiries, support requests
+   - Everything enters the CRM automatically — no manual data entry
 
-2. Handles communication channels
-- It receives emails, messages (Meta APIs, WhatsApp, Messenger), customer inquiries, support requests
-- Everything enters the CRM automatically — no manual data entry.
+3. **AI Processing**:
+   - Classifies, understands, and acts on messages using:
+     - Text classification
+     - Intent detection
+     - Semantic search
+     - Auto-reply generation
+     - Personalization ranking
+   - Decides whether to:
+     - Reply instantly
+     - Escalate
+     - Assign a task
+     - Log an interaction
+     - Route to the right department
 
-3. Uses AI to classify, understand, and act on messages. Incoming messages are processed using:
-- text classification
-- intent detection
-- semantic search
-- auto-reply generation
-- personalization ranking
+4. **Catalogue Management**:
+   - Fetches, monitors, and syncs catalog data to:
+     - Recommend products
+     - Match customers to offerings
+     - Answer catalog-specific questions
+     - Keep personalization accurate
 
-Then the system decides whether to:
-- reply instantly
-- escalate
-- assign a task
-- log an interaction
-- route it to the right department
+5. **Smart Insights**:
+   - Provides dashboards with:
+     - Customer behavior patterns
+     - Important leads
+     - Past interactions
+     - Preferences
+     - Recommended products
+     - Churn alerts
+     - Opportunities
 
-4. Continuously updates and enriches product/catalog data
+### What We Aim to Achieve
 
-Catalog info lives on another site. Mancrel fetches, monitors, and embeddings-syncs it to:
-- recommend products
-- match customers to offerings
-- answer catalog-specific questions
-- keep personalization accurate
+1. **Intelligent CRM**: Not just a database, but a decision-making, understanding, and automating tool
+2. **Workload Reduction**: AI handles replies, classification, prioritization, matching, routing, personalization, recommendations
+3. **Deep Personalization**: Every interaction influences future recommendations
+4. **Vector-Powered Search**: Semantic understanding instead of keyword search
+5. **Meta Integration**: Shine with Meta-based integrations (automated replies, real-time classification, lead retrieval, CRM enrichment)
+6. **Complete MVP**: Functional CRM core, AI engine, clean frontend, vector-powered personalization in ~11 days
 
-5. Provides smart insights & dashboards
+## THE FINAL OUTCOME
 
-AI highlights:
-- customer behavior patterns
-- important leads
-- past interactions
-- preferences
-- recommended products
-- churn alerts
-- opportunities
-You’re building an intelligent relationship engine, not a boring CRUD dashboard.
+A functioning, deployed CRM system that:
+- Stores customer and company data
+- Receives and organizes communications
+- Analyzes messages with AI
+- Auto-replies where possible
+- Syncs catalog data
+- Recommends responses and products
+- Learns customer behavior
+- Supports Meta-based integrations
+- Runs fast (Redis), accurate (Postgres), and smart (Vector DB)
 
-WHAT WE AIM TO ACHIEVE
-1. Build a CRM that’s genuinely intelligent: not just a database
-Most CRMs are glorified spreadsheets but Mancrel makes decisions, understands text, and automates tasks.
+## File Structure
 
-2. Reduce human workload drastically
-
-The AI handles:
-- replies
-- classification
-- customer prioritization
-- product matching
-- message routing
-- personalization
-- recommendations
-Users only handle what the AI can’t.
-
-3. Achieve deep personalization
-Every interaction the company has with a customer influences what the system recommends next.
-
-4. Leverage Vector-Powered Search (VPS) for semantic understanding
-
-Instead of keyword search:
-- conversations
-- catalog data
-- notes
-- customer profiles
-
-are converted into embeddings stored in a Vector DB.
-This enables true semantic matching, not “CTRL+F with sugar.”
-
-5. Integrate Meta APIs for smart, automated messaging
-### Since this is a Meta hackathon, MANCREL must shine here:
-- automated replies on Messenger/WhatsApp
-- real-time classification of inquiries
-- lead retrieval
-- CRM enrichment from Meta channels
-
-6. Make a complete MVP in ~11 days
-- a minimal but functional CRM core, an AI engine that handles the high-impact tasks, a clean frontend that interacts with the backend, a vector-powered personalization layer while keeping the architecture modular and scalable.
-
-THE FINAL OUTCOME
-- A functioning, deployed CRM system that:
-- stores customer and company data
-- receives and organizes communications
-- analyzes messages with AI
-- auto-replies where possible
-- syncs catalog data
-- recommends responses and products
-- learns customer behavior
-- supports Meta-based integrations
-- runs fast (Redis), accurate (Postgres), and smart (Vector DB)
-
-### File structure:
+```
 mancrel/
 │
 ├── backend/                           # All server logic, APIs, ML inference, workers
@@ -338,3 +270,4 @@ mancrel/
 │   └── README.md
 │
 └── README.md                          # Root documentation for MANCREL
+```
