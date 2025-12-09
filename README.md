@@ -1,4 +1,4 @@
-# mancrel
+# Mancrel
 A customer relations management systems for products seller. Helps keep track of things you're selling and the customers you're selling to without ignoring anyone.
 
 MANCREL: PROJECT SUMMARY (Finalized & Ordered)
@@ -136,4 +136,104 @@ MAN → Management
 CREL → Customer Relations Layer
     _Why? Short. Practical. Brandable._
 
-### Mr. Ahmad Yusuff is allowed to make changes to any of the backend strategy or this README.md as he sees fit.
+#### Mr. Ahmad Yusuff is allowed to make changes to any of the backend strategy or this README.md as he sees fit.
+
+### WHAT THE PROJECT DOES
+
+MANCREL is an AI-powered, all-in-one CRM built to automate customer relationship management far beyond what traditional CRMs do.
+
+It manages contacts, companies, leads, messages, notes, interactions, preferences then it layers AI on top to turn the CRM from a dumb storage tool into an intelligent assistant.
+
+At its core, it:
+1. Collects, stores, and organizes customer & company data
+- A central backend (Postgres + Redis + Vector DB) manages all CRM records: users, customers, messages, catalog data, logs, preferences, etc.
+
+2. Handles communication channels
+- It receives emails, messages (Meta APIs, WhatsApp, Messenger), customer inquiries, support requests
+- Everything enters the CRM automatically — no manual data entry.
+
+3. Uses AI to classify, understand, and act on messages. Incoming messages are processed using:
+- text classification
+- intent detection
+- semantic search
+- auto-reply generation
+- personalization ranking
+
+Then the system decides whether to:
+- reply instantly
+- escalate
+- assign a task
+- log an interaction
+- route it to the right department
+
+4. Continuously updates and enriches product/catalog data
+
+Catalog info lives on another site. Mancrel fetches, monitors, and embeddings-syncs it to:
+- recommend products
+- match customers to offerings
+- answer catalog-specific questions
+- keep personalization accurate
+
+5. Provides smart insights & dashboards
+
+AI highlights:
+- customer behavior patterns
+- important leads
+- past interactions
+- preferences
+- recommended products
+- churn alerts
+- opportunities
+You’re building an intelligent relationship engine, not a boring CRUD dashboard.
+
+WHAT WE AIM TO ACHIEVE
+1. Build a CRM that’s genuinely intelligent: not just a database
+Most CRMs are glorified spreadsheets but Mancrel makes decisions, understands text, and automates tasks.
+
+2. Reduce human workload drastically
+
+The AI handles:
+- replies
+- classification
+- customer prioritization
+- product matching
+- message routing
+- personalization
+- recommendations
+Users only handle what the AI can’t.
+
+3. Achieve deep personalization
+Every interaction the company has with a customer influences what the system recommends next.
+
+4. Leverage Vector-Powered Search (VPS) for semantic understanding
+
+Instead of keyword search:
+- conversations
+- catalog data
+- notes
+- customer profiles
+
+are converted into embeddings stored in a Vector DB.
+This enables true semantic matching, not “CTRL+F with sugar.”
+
+5. Integrate Meta APIs for smart, automated messaging
+### Since this is a Meta hackathon, MANCREL must shine here:
+- automated replies on Messenger/WhatsApp
+- real-time classification of inquiries
+- lead retrieval
+- CRM enrichment from Meta channels
+
+6. Make a complete MVP in ~11 days
+- a minimal but functional CRM core, an AI engine that handles the high-impact tasks, a clean frontend that interacts with the backend, a vector-powered personalization layer while keeping the architecture modular and scalable.
+
+THE FINAL OUTCOME
+- A functioning, deployed CRM system that:
+- stores customer and company data
+- receives and organizes communications
+- analyzes messages with AI
+- auto-replies where possible
+- syncs catalog data
+- recommends responses and products
+- learns customer behavior
+- supports Meta-based integrations
+- runs fast (Redis), accurate (Postgres), and smart (Vector DB)
