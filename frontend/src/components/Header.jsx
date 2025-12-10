@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from 'react'
+import Link from 'next/link'
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -37,12 +38,8 @@ export default function Header() {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <button className="btn-secondary">
-              Sign In
-            </button>
-            <button className="btn-primary">
-              Start Free Trial
-            </button>
+            <Link href="/signin" className="btn-secondary">Sign In</Link>
+            <Link href="/signup" className="btn-primary">Start Free Trial</Link>
           </div>
 
           {/* Mobile menu button */}
@@ -80,8 +77,8 @@ export default function Header() {
                 AI Inbox
               </a>
               <div className="pt-4 space-y-2">
-                <button className="btn-secondary w-full">Sign In</button>
-                <button className="btn-primary w-full">Start Free Trial</button>
+                <Link href="/signin" className="btn-secondary w-full block text-center">Sign In</Link>
+                <Link href="/signup" className="btn-primary w-full block text-center">Start Free Trial</Link>
               </div>
             </div>
           </div>
