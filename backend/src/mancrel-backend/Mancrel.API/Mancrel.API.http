@@ -1,0 +1,6 @@
+@Mancrel.API_HostAddress = http://localhost:5057
+
+GET {{Mancrel.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
