@@ -315,3 +315,14 @@ If you want, I can:
 - Implement the example "Create user" endpoint (controller + service + tests) as a working PR.
 
 Which of the 3 should I do next? 
+
+## To access the dashboard file use:
+- GET https://mancrel.vercel.app/dashboard
+
+## But the endpoints for serving data are:
+> GET /api/auth/me                    # Current user info
+> GET /api/dashboard/stats            # AI Agents, Escalation, Tasks stats
+> GET /api/dashboard/interactions     # WhatsApp, Email, Phone metrics
+> GET /api/dashboard/welcome          # Welcome section data (credit balance, etc.)
+> GET /api/deals                      # Deal pipeline/Kanban data
+> GET /api/customers                  # Customer list
