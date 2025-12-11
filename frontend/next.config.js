@@ -4,14 +4,11 @@ const nextConfig = {
   images: {
     domains: [],
   },
-  swcMinify: false,
   compiler: {
     emotion: false,
     styledComponents: false,
   },
-  experimental: {
-    swcDisableModuleTransforms: false,
-  },
+  // Note: removed unsupported swc config keys for Next.js v16/Turbopack
 }
 
 module.exports = nextConfig
