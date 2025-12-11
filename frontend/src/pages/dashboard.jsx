@@ -3,43 +3,17 @@ import { useRouter } from "next/router"
 import { Sidebar } from "@/components/Sidebar"
 import { Menu, LogOut } from "@/components/Icons"
 
+import { EscalationsContent } from "@/components/EscalationsContent"
+import { CustomersContent } from "@/components/CustomersContent"
+
 export default function DashboardPage() {
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [user, setUser] = useState(null)
-
-  useEffect(() => {
-    // Check authentication on mount
-    async function checkAuth() {
-      try {
-        const res = await fetch("/api/auth/me", {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include", // Include cookies if using session-based auth
-        })
-
-        if (res.ok) {
-          const data = await res.json()
-          setUser(data.user)
-          setIsAuthenticated(true)
-        } else {
-          // Not authenticated, redirect to signin
-          router.push("/signin")
-        }
-      } catch (error) {
-        console.error("Auth check failed:", error)
-        // If backend not available, allow mock auth for development
-        setIsAuthenticated(true)
-        setUser({ name: "Dev User", email: "dev@example.com" })
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    checkAuth()
-  }, [router])
+  const [activeView, setActiveView] = useState("dashboard")
+  // Mock auth state for UI development
+  const [isAuthenticated, setIsAuthenticated] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const [user, setUser] = useState({name: "Dev User", email: "dev@example.com"})
 
   async function handleLogout() {
     try {
@@ -71,7 +45,7 @@ export default function DashboardPage() {
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <Sidebar isOpen={sidebarOpen} />
+      <Sidebar isOpen={sidebarOpen} activeView={activeView} setActiveView={setActiveView} handleLogout={handleLogout} />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
@@ -102,40 +76,44 @@ export default function DashboardPage() {
 
         {/* Page Content */}
         <main className="flex-1 overflow-auto p-6">
-          <div className="max-w-7xl mx-auto">
-            <h1 className="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
+          {activeView === "dashboard" && (
+            <div className="max-w-7xl mx-auto">
+              <h1 className="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
 
-            {/* Welcome Card */}
-            <div className="bg-white rounded-lg border p-6 mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Welcome back, {user?.name}!</h2>
-              <p className="text-gray-600">This is your protected dashboard. Only authenticated users can access this page.</p>
-            </div>
+              {/* Welcome Card */}
+              <div className="bg-white rounded-lg border p-6 mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">Welcome back, {user?.name}!</h2>
+                <p className="text-gray-600">This is your protected dashboard. Only authenticated users can access this page.</p>
+              </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <div className="bg-white rounded-lg border p-6">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Total Deals</h3>
-                <p className="text-3xl font-bold text-gray-900">$2.4M</p>
-                <p className="text-xs text-gray-500 mt-2">+12% from last month</p>
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div className="bg-white rounded-lg border p-6">
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Total Deals</h3>
+                  <p className="text-3xl font-bold text-gray-900">$2.4M</p>
+                  <p className="text-xs text-gray-500 mt-2">+12% from last month</p>
+                </div>
+                <div className="bg-white rounded-lg border p-6">
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Active Customers</h3>
+                  <p className="text-3xl font-bold text-gray-900">324</p>
+                  <p className="text-xs text-gray-500 mt-2">+8 new this week</p>
+                </div>
+                <div className="bg-white rounded-lg border p-6">
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Escalations</h3>
+                  <p className="text-3xl font-bold text-gray-900">12</p>
+                  <p className="text-xs text-gray-500 mt-2">2 pending review</p>
+                </div>
               </div>
-              <div className="bg-white rounded-lg border p-6">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Active Customers</h3>
-                <p className="text-3xl font-bold text-gray-900">324</p>
-                <p className="text-xs text-gray-500 mt-2">+8 new this week</p>
-              </div>
-              <div className="bg-white rounded-lg border p-6">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Escalations</h3>
-                <p className="text-3xl font-bold text-gray-900">12</p>
-                <p className="text-xs text-gray-500 mt-2">2 pending review</p>
-              </div>
-            </div>
 
-            {/* Placeholder for more content */}
-            <div className="bg-white rounded-lg border p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
-              <p className="text-gray-600">Add your dashboard content here. This is a protected page that requires authentication.</p>
+              {/* Placeholder for more content */}
+              <div className="bg-white rounded-lg border p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
+                <p className="text-gray-600">Add your dashboard content here. This is a protected page that requires authentication.</p>
+              </div>
             </div>
-          </div>
+          )}
+          {activeView === "escalations" && <EscalationsContent />}
+          {activeView === "customers" && <CustomersContent />}
         </main>
       </div>
     </div>

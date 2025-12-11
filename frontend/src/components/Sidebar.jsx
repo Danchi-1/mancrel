@@ -1,18 +1,23 @@
+"use client"
+
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, AlertTriangle, Users, ChevronDown, ChevronRight } from "@/components/Icons"
-import { useState } from "react"
+import { LayoutDashboard, AlertTriangle, Users, LogOut } from "lucide-react"
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", active: true },
-  { icon: AlertTriangle, label: "Escalation" },
-  { icon: Users, label: "Customers" },
+  { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { id: "escalations", icon: AlertTriangle, label: "Escalation" },
+  { id: "customers", icon: Users, label: "Customers" },
 ]
 
-export function Sidebar({ isOpen }) {
-  const [expandedItems, setExpandedItems] = useState([])
+export function Sidebar({ isOpen, activeView, setActiveView, handleLogout }) {
+  const handleItemClick = (item) => {
+    setActiveView(item.id)
+  }
 
-  const toggleExpand = (label) => {
-    setExpandedItems((prev) => (prev.includes(label) ? prev.filter((item) => item !== label) : [...prev, label]))
+  const onLogoutClick = () => {
+    if (window.confirm("Are you sure you want to log out?")) {
+      handleLogout()
+    }
   }
 
   return (
@@ -26,33 +31,38 @@ export function Sidebar({ isOpen }) {
 
       {/* Main Navigation */}
       <nav className="flex-1 p-3 space-y-1">
-        {menuItems.map((item) => (
-          <div key={item.label}>
-            <button
-              onClick={() => item.hasSubmenu && toggleExpand(item.label)}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-                item.active
-                  ? "bg-indigo-50 text-[#4F46E5] border border-indigo-200"
-                  : "text-gray-600 hover:bg-gray-100",
-              )}
-            >
-              <item.icon className="w-4 h-4 shrink-0" />
-              {isOpen && (
-                <>
-                  <span className="flex-1 text-left">{item.label}</span>
-                  {item.hasSubmenu &&
-                    (expandedItems.includes(item.label) ? (
-                      <ChevronDown className="w-4 h-4" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4" />
-                    ))}
-                </>
-              )}
-            </button>
-          </div>
-        ))}
+        {menuItems.map((item) => {
+          const isActive = item.id === activeView
+
+          return (
+            <div key={item.label}>
+              <button
+                onClick={() => handleItemClick(item)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                  isActive ? "bg-indigo-50 text-[#4F46E5] border border-indigo-200" : "text-gray-600 hover:bg-gray-100",
+                )}
+              >
+                <item.icon className="w-4 h-4 shrink-0" />
+                {isOpen && <span className="flex-1 text-left">{item.label}</span>}
+              </button>
+            </div>
+          )
+        })}
       </nav>
+
+      {/* Logout Button */}
+      <div className="p-3 border-t">
+        <button
+          onClick={onLogoutClick}
+          className={cn(
+            "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors text-gray-600 hover:bg-red-50 hover:text-red-600",
+          )}
+        >
+          <LogOut className="w-4 h-4 shrink-0" />
+          {isOpen && <span className="flex-1 text-left">Logout</span>}
+        </button>
+      </div>
     </aside>
   )
 }

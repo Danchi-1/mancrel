@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 
 export default function SignInPage() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -21,18 +22,28 @@ export default function SignInPage() {
       })
 
       if (!res.ok) {
+        // For development, if the API route isn't found, mock a success and redirect.
+        if (res.status === 404) {
+          console.warn('API route not found. Simulating successful sign-in for development.')
+          setMessage({ type: 'success', text: 'Signed in (mock). Redirecting...' })
+          setTimeout(() => router.push('/dashboard'), 1000)
+          return
+        }
         const err = await res.json().catch(() => ({ error: res.statusText }))
         setMessage({ type: 'error', text: err.error || 'Sign in failed' })
       } else {
         const data = await res.json().catch(() => ({}))
         setMessage({ type: 'success', text: data.message || 'Signed in successfully' })
+        router.push('/dashboard')
+        return
       }
     } catch (err) {
       // If backend isn't available, show a mock success so user can continue
-      setMessage({ type: 'success', text: 'Signed in (mock). No backend detected.' })
-    } finally {
-      setLoading(false)
+      setMessage({ type: 'success', text: 'Signed in (mock). Redirecting...' })
+      setTimeout(() => router.push('/dashboard'), 1000)
+      return
     }
+    setLoading(false)
   }
 
   return (
