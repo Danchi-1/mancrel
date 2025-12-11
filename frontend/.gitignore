@@ -34,3 +34,7 @@ yarn-error.log*
 
 # OS
 Thumbs.db
+
+# Exceptions (override root .gitignore)
+!src/lib/
+!src/lib/**
