@@ -11,10 +11,9 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "lucide-react": "^0.287.0",
     "next": "^16.0.8",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1"
   },
   "devDependencies": {
     "@babel/core": "^7.28.5",

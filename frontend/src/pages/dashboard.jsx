@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/router"
 import { Sidebar } from "@/components/Sidebar"
-import { Menu, LogOut } from "lucide-react"
+import { Menu, LogOut } from "@/components/Icons"
 
 export default function DashboardPage() {
   const router = useRouter()

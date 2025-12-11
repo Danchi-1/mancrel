@@ -1,7 +1,5 @@
-"use client"
-
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, AlertTriangle, Users, ChevronDown, ChevronRight } from "lucide-react"
+import { LayoutDashboard, AlertTriangle, Users, ChevronDown, ChevronRight } from "@/components/Icons"
 import { useState } from "react"
 
 const menuItems = [
