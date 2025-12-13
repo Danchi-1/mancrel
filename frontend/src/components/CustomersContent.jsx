@@ -1,12 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { Search, ChevronDown, LayoutGrid, List, UserPlus, ChevronRight } from "lucide-react"
 import { Search, ChevronDown, LayoutGrid, List, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { CustomerDetailsContent } from "@/components/CustomerDetailsContent"
-import Link from "next/link"
 
 const customersData = [
   { id: 1, name: "Frank Omah", whatsapp: "+2349068944845", initial: "F", color: "text-green-600" },
@@ -21,10 +19,11 @@ export function CustomersContent() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCustomerId, setSelectedCustomerId] = useState(null)
 
+  // If a customer is selected, show the details view
   if (selectedCustomerId) {
     return <CustomerDetailsContent customerId={selectedCustomerId} onBack={() => setSelectedCustomerId(null)} />
   }
-
+  
   return (
     <div className="p-6">
       <div className="bg-white rounded-lg border">
@@ -91,10 +90,8 @@ export function CustomersContent() {
                   <td className="py-4 px-4">
                     <div className="flex items-center gap-3">
                       <button onClick={() => setSelectedCustomerId(customer.id)} className="text-[#4F46E5] text-sm hover:underline">
-                      <Link href={`/customers/${customer.id}`} className="text-[#4F46E5] text-sm hover:underline">
                         View
                       </button>
-                      </Link>
                       <button className="text-[#4F46E5] text-sm hover:underline">Edit</button>
                     </div>
                   </td>

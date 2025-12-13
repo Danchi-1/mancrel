@@ -21,7 +21,7 @@ export function Sidebar({ isOpen, activeView, setActiveView, handleLogout }) {
   }
 
   return (
-    <aside className={cn("w-56 bg-white border-r flex flex-col transition-all duration-300", !isOpen && "w-16")}>
+    <aside className={cn("bg-white border-r flex flex-col transition-all duration-300 overflow-hidden", isOpen ? "w-56" : "w-16")}>
       <div className="h-14 border-b flex items-center px-4 gap-2">
         <div className="w-8 h-8 rounded-lg bg-[#4F46E5] flex items-center justify-center">
           <span className="text-white font-bold text-sm">M</span>
