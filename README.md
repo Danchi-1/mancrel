@@ -271,3 +271,6 @@ mancrel/
 │
 └── README.md                          # Root documentation for MANCREL
 ```
+
+
+A few fixes to be made in the frontend.
