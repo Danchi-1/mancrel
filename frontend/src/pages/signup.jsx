@@ -6,7 +6,7 @@ export default function SignUpPage() {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
-    companyName: '',
+    businessName: '',
     email: '',
     phone: '',
     industrySector: '',
@@ -19,7 +19,7 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState(null)
 
-  const businessTypeOptions = ['B2B', 'B2C', 'B2B2C', 'Enterprise', 'Startup']
+  const businessTypeOptions = ['B2C', 'B2B2C', 'Startup']
   const industrySectorOptions = [
     'Technology',
     'Finance',
@@ -66,7 +66,7 @@ export default function SignUpPage() {
         body: JSON.stringify({
           firstName: formData.firstName,
           lastName: formData.lastName,
-          companyName: formData.companyName,
+          businessName: formData.businessName,
           email: formData.email,
           phone: formData.phone,
           industrySector: formData.industrySector,
@@ -127,17 +127,17 @@ export default function SignUpPage() {
             </div>
           </div>
 
-          {/* Company Name */}
+          {/* Business Name */}
           <div>
-            <label className="block text-sm font-medium text-neutral-700">Company name</label>
+            <label className="block text-sm font-medium text-neutral-700">Business name</label>
             <input
               type="text"
-              name="companyName"
-              value={formData.companyName}
+              name="businessName"
+              value={formData.businessName}
               onChange={handleChange}
               required
               className="input-field w-full"
-              placeholder="Your company name"
+              placeholder="Your business name"
             />
           </div>
 
