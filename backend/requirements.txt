@@ -1,0 +1,16 @@
+# ── Core API framework ────────────────────────────────────────────────────────
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+
+# ── LLM / AI reply generation ─────────────────────────────────────────────────
+# openai SDK v1.x — v2 has breaking URL construction for non-OpenAI providers
+openai>=1.30.0,<2.0.0
+
+# ── Message classifier (SetFit — CPU-safe, no GPU needed) ────────────────────
+setfit>=1.0.3
+sentence-transformers>=2.7.0
+datasets>=2.19.0
+pandas>=2.2.0
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+python-dotenv>=1.0.0    # loads .env file
