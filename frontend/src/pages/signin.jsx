@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import { apiClient } from '@/lib/apiClient'
 
 export default function SignInPage() {
   const router = useRouter()
@@ -15,35 +16,15 @@ export default function SignInPage() {
     setMessage(null)
 
     try {
-      const res = await fetch('/api/auth/signin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
-
-      if (!res.ok) {
-        // For development, if the API route isn't found, mock a success and redirect.
-        if (res.status === 404) {
-          console.warn('API route not found. Simulating successful sign-in for development.')
-          setMessage({ type: 'success', text: 'Signed in (mock). Redirecting...' })
-          setTimeout(() => router.push('/dashboard'), 1000)
-          return
-        }
-        const err = await res.json().catch(() => ({ error: res.statusText }))
-        setMessage({ type: 'error', text: err.error || 'Sign in failed' })
-      } else {
-        const data = await res.json().catch(() => ({}))
-        setMessage({ type: 'success', text: data.message || 'Signed in successfully' })
-        router.push('/dashboard')
-        return
-      }
+      const data = await apiClient.post('/auth/signin', { email, password }, false);
+      localStorage.setItem('token', data.access_token);
+      setMessage({ type: 'success', text: 'Signed in successfully' })
+      router.push('/dashboard')
     } catch (err) {
-      // If backend isn't available, show a mock success so user can continue
-      setMessage({ type: 'success', text: 'Signed in (mock). Redirecting...' })
-      setTimeout(() => router.push('/dashboard'), 1000)
-      return
+      setMessage({ type: 'error', text: err.message || 'Sign in failed' })
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (
