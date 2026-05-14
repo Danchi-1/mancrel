@@ -1,55 +1,27 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { apiClient } from '@/lib/apiClient'
 
 export default function AIInbox() {
-  // TODO: Replace with GET /api/inbox and real-time updates via WebSocket
-  const [messages] = useState([
-    {
-      id: 1,
-      from: 'Sarah Chen',
-      company: 'TechFlow Inc.',
-      subject: 'Re: Enterprise Plan Pricing',
-      preview: 'Thanks for the detailed breakdown. We\'re interested in moving forward with the annual plan...',
-      time: '10:45 AM',
-      unread: true,
-      sentiment: 'positive',
-      aiSuggestion: {
-        confidence: 92,
-        text: 'Great news! I\'ll prepare the contract for the Enterprise Annual plan and send it over by EOD. Would Thursday work for a quick onboarding call?'
-      }
-    },
-    {
-      id: 2,
-      from: 'Marcus Johnson',
-      company: 'Innovate Labs',
-      subject: 'Demo Follow-up Questions',
-      preview: 'Hi, the demo was helpful but I have a few technical questions about the API integration...',
-      time: '9:30 AM',
-      unread: true,
-      sentiment: 'neutral',
-      aiSuggestion: {
-        confidence: 85,
-        text: 'Thanks for your questions! Our API supports RESTful endpoints with OAuth 2.0 authentication. I\'ll connect you with our solutions engineer who can provide detailed integration guidance.'
-      }
-    },
-    {
-      id: 3,
-      from: 'Elena Rodriguez',
-      company: 'Global Solutions',
-      subject: 'Contract Review Concerns',
-      preview: 'We\'ve reviewed the proposal and have some concerns about the data residency clauses...',
-      time: 'Yesterday',
-      unread: false,
-      sentiment: 'concern',
-      aiSuggestion: {
-        confidence: 78,
-        text: 'I understand your concerns about data residency. We offer region-specific hosting options. Let me schedule a call with our compliance team to address this properly.'
+  const [messages, setMessages] = useState([])
+  const [selectedMessage, setSelectedMessage] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchMessages() {
+      try {
+        const data = await apiClient.get('/messaging/inbox');
+        setMessages(data);
+        if (data.length > 0) setSelectedMessage(data[0]);
+      } catch (error) {
+        console.error("Failed to fetch inbox messages", error);
+      } finally {
+        setLoading(false);
       }
     }
-  ])
-
-  const [selectedMessage, setSelectedMessage] = useState(messages[0])
+    fetchMessages();
+  }, []);
 
   const getSentimentColor = (sentiment) => {
     switch (sentiment) {
@@ -102,12 +74,14 @@ export default function AIInbox() {
             </div>
 
             <div className="divide-y divide-neutral-100">
-              {messages.map((message) => (
+              {messages.length === 0 ? (
+                 <div className="p-4 text-center text-neutral-500">No messages found.</div>
+              ) : messages.map((message) => (
                 <button
                   key={message.id}
                   onClick={() => setSelectedMessage(message)}
                   className={`w-full p-4 text-left hover:bg-neutral-50 transition-colors duration-200 ${
-                    selectedMessage.id === message.id ? 'bg-accent/5 border-l-4 border-accent' : ''
+                    selectedMessage?.id === message.id ? 'bg-accent/5 border-l-4 border-accent' : ''
                   }`}
                 >
                   <div className="flex items-start justify-between mb-2">
@@ -143,6 +117,12 @@ export default function AIInbox() {
 
           {/* Message Detail & AI Suggestion */}
           <div className="lg:col-span-3 space-y-6">
+            {!selectedMessage ? (
+              <div className="card p-6 flex items-center justify-center h-64 text-neutral-500">
+                Select a message to view details
+              </div>
+            ) : (
+            <>
             {/* Message Content */}
             <div className="card p-6">
               <div className="flex items-start justify-between mb-4">
@@ -231,6 +211,8 @@ export default function AIInbox() {
                 </button>
               </div>
             </div>
+            </>
+            )}
           </div>
         </div>
       </div>
