@@ -1,23 +1,32 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Search, ChevronDown, LayoutGrid, List, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { CustomerDetailsContent } from "@/components/CustomerDetailsContent"
-
-const customersData = [
-  { id: 1, name: "Frank Omah", whatsapp: "+2349068944845", initial: "F", color: "text-green-600" },
-  { id: 2, name: "Aimuan Godwin", whatsapp: "+2348064384227", initial: "A", color: "text-purple-600" },
-  { id: 3, name: "Dorothy Bassey", whatsapp: "+2348033234243", initial: "D", color: "text-orange-600" },
-  { id: 4, name: "Unknown Customer", whatsapp: "Undefined", initial: "U", color: "text-blue-600" },
-  { id: 5, name: "Emmanuel Ademola", whatsapp: "+2348142151880", initial: "E", color: "text-red-600" },
-]
+import { apiClient } from "@/lib/apiClient"
 
 export function CustomersContent() {
+  const [customers, setCustomers] = useState([])
+  const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState("list")
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCustomerId, setSelectedCustomerId] = useState(null)
+
+  useEffect(() => {
+    async function fetchCustomers() {
+      try {
+        const data = await apiClient.get('/customers');
+        setCustomers(data);
+      } catch (error) {
+        console.error("Failed to fetch customers", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchCustomers();
+  }, [])
 
   // If a customer is selected, show the details view
   if (selectedCustomerId) {
@@ -78,15 +87,19 @@ export function CustomersContent() {
               </tr>
             </thead>
             <tbody>
-              {customersData.map((customer) => (
+              {customers.length === 0 ? (
+                <tr>
+                  <td colSpan="3" className="py-4 text-center text-gray-500">No customers found</td>
+                </tr>
+              ) : customers.map((customer) => (
                 <tr key={customer.id} className="border-b hover:bg-gray-50">
                   <td className="py-4 px-4">
                     <div className="flex items-center gap-3">
-                      <span className={`font-semibold ${customer.color}`}>{customer.initial}</span>
+                      <span className={`font-semibold text-blue-600`}>{customer.name.charAt(0).toUpperCase()}</span>
                       <span className="text-[#4F46E5] text-sm">{customer.name}</span>
                     </div>
                   </td>
-                  <td className="py-4 px-4 text-sm text-gray-600">{customer.whatsapp}</td>
+                  <td className="py-4 px-4 text-sm text-gray-600">{customer.phone || customer.email}</td>
                   <td className="py-4 px-4">
                     <div className="flex items-center gap-3">
                       <button onClick={() => setSelectedCustomerId(customer.id)} className="text-[#4F46E5] text-sm hover:underline">
