@@ -5,35 +5,49 @@ import { Menu, LogOut } from "@/components/Icons"
 
 import { EscalationsContent } from "@/components/EscalationsContent"
 import { CustomersContent } from "@/components/CustomersContent"
+import DealsKanban from "@/components/DealsKaban"
+import AIInbox from "@/components/AIInbox"
+import WhatsAppConnect from "@/components/WhatsAppConnect"
+import { apiClient } from "@/lib/apiClient"
 
 export default function DashboardPage() {
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [activeView, setActiveView] = useState("dashboard")
-  // Mock auth state for UI development
-  const [isAuthenticated, setIsAuthenticated] = useState(true)
-  const [loading, setLoading] = useState(false)
-  const [user, setUser] = useState({name: "Dev User", email: "dev@example.com"})
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState(null)
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const userData = await apiClient.get('/auth/me');
+        setUser({
+          name: `${userData.first_name} ${userData.last_name}`,
+          email: userData.email,
+          whatsapp_connected: userData.whatsapp_connected
+        });
+        setIsAuthenticated(true);
+      } catch (error) {
+        console.error('Not authenticated', error);
+        router.push('/signin');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchUser();
+  }, [router]);
 
   async function handleLogout() {
-    try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      })
-    } catch (error) {
-      console.error("Logout error:", error)
-    } finally {
-      // Clear auth and redirect
-      setIsAuthenticated(false)
-      router.push("/")
-    }
+    localStorage.removeItem('token');
+    setIsAuthenticated(false);
+    router.push('/');
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-gray-600">Loading...</p>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <p className="text-gray-600 animate-pulse font-medium">Loading Dashboard...</p>
       </div>
     )
   }
@@ -48,72 +62,57 @@ export default function DashboardPage() {
       <Sidebar isOpen={sidebarOpen} activeView={activeView} setActiveView={setActiveView} handleLogout={handleLogout} />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Top Bar */}
-        <header className="h-14 bg-white border-b flex items-center justify-between px-6">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <Menu className="w-5 h-5 text-gray-600" />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top Header */}
+        <header className="bg-white border-b h-16 flex items-center justify-between px-6">
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-gray-500 hover:text-gray-700">
+            <Menu className="w-6 h-6" />
           </button>
-
           <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-sm font-medium text-gray-900">{user?.name || "User"}</p>
-              <p className="text-xs text-gray-500">{user?.email || "user@example.com"}</p>
+            <span className="text-sm font-medium text-gray-700">{user.name}</span>
+            <div className="w-8 h-8 bg-[#4F46E5] text-white rounded-full flex items-center justify-center font-bold">
+              {user.name.charAt(0)}
             </div>
-
-            <button
-              onClick={handleLogout}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
-              title="Logout"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
           </div>
         </header>
-
-        {/* Page Content */}
-        <main className="flex-1 overflow-auto p-6">
-          {activeView === "dashboard" && (
-            <div className="max-w-7xl mx-auto">
-              <h1 className="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
-
-              {/* Welcome Card */}
-              <div className="bg-white rounded-lg border p-6 mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">Welcome back, {user?.name}!</h2>
-                <p className="text-gray-600">This is your protected dashboard. Only authenticated users can access this page.</p>
-              </div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div className="bg-white rounded-lg border p-6">
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Total Deals</h3>
-                  <p className="text-3xl font-bold text-gray-900">$2.4M</p>
-                  <p className="text-xs text-gray-500 mt-2">+12% from last month</p>
+        {/* Dynamic Content Area */}
+        <main className="flex-1 overflow-auto bg-gray-50">
+          {!user.whatsapp_connected ? (
+            <WhatsAppConnect onConnect={async () => {
+              try {
+                await apiClient.patch('/auth/whatsapp/connect');
+                setUser({ ...user, whatsapp_connected: true });
+              } catch (e) {
+                console.error(e);
+              }
+            }} />
+          ) : (
+            <>
+              {activeView === "dashboard" && (
+                <div className="max-w-7xl mx-auto p-6">
+                  <h1 className="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="bg-white p-6 rounded-xl border shadow-sm">
+                      <h3 className="text-sm font-medium text-gray-500 mb-2">Total Contacts</h3>
+                      <p className="text-3xl font-bold text-gray-900">0</p>
+                    </div>
+                    <div className="bg-white p-6 rounded-xl border shadow-sm">
+                      <h3 className="text-sm font-medium text-gray-500 mb-2">Active Deals</h3>
+                      <p className="text-3xl font-bold text-gray-900">0</p>
+                    </div>
+                    <div className="bg-white p-6 rounded-xl border shadow-sm">
+                      <h3 className="text-sm font-medium text-gray-500 mb-2">AI Interactions</h3>
+                      <p className="text-3xl font-bold text-gray-900">0</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-white rounded-lg border p-6">
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Active Customers</h3>
-                  <p className="text-3xl font-bold text-gray-900">324</p>
-                  <p className="text-xs text-gray-500 mt-2">+8 new this week</p>
-                </div>
-                <div className="bg-white rounded-lg border p-6">
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Escalations</h3>
-                  <p className="text-3xl font-bold text-gray-900">12</p>
-                  <p className="text-xs text-gray-500 mt-2">2 pending review</p>
-                </div>
-              </div>
-
-              {/* Placeholder for more content */}
-              <div className="bg-white rounded-lg border p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
-                <p className="text-gray-600">Add your dashboard content here. This is a protected page that requires authentication.</p>
-              </div>
-            </div>
+              )}
+              {activeView === "inbox" && <AIInbox />}
+              {activeView === "deals" && <DealsKanban />}
+              {activeView === "escalations" && <EscalationsContent />}
+              {activeView === "customers" && <CustomersContent />}
+            </>
           )}
-          {activeView === "escalations" && <EscalationsContent />}
-          {activeView === "customers" && <CustomersContent />}
         </main>
       </div>
     </div>
