@@ -19,8 +19,7 @@ const escalationData = [
     customer: "Dr. B. A. Oyeneyin",
     issueType: "Prepaid meter recharge issue after ...",
     channel: "email",
-    assignedTo:.
-    "Jennifer Ifemedebe",
+    assignedTo: "Jennifer Ifemedebe",
     status: "Resolved",
     date: "02/12/2025 07:21 PM",
   },
