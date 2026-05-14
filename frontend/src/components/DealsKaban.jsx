@@ -1,46 +1,50 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { apiClient } from '@/lib/apiClient'
 
 export default function DealsKanban() {
-  // TODO: Replace with real state management (Redux, Zustand, or Context API)
-  // TODO: Integrate with PATCH /api/deals/:id for drag-and-drop updates
-  const [columns] = useState([
-    {
-      id: 'prospect',
-      title: 'Prospecting',
-      color: 'neutral',
-      deals: [
-        { id: 1, company: 'Acme Corp', value: '$45K', contact: 'John Smith', probability: 30 },
-        { id: 2, company: 'Widget Inc', value: '$22K', contact: 'Jane Doe', probability: 25 }
-      ]
-    },
-    {
-      id: 'qualified',
-      title: 'Qualified',
-      color: 'accent',
-      deals: [
-        { id: 3, company: 'TechFlow', value: '$120K', contact: 'Sarah Chen', probability: 60 },
-        { id: 4, company: 'Innovate Labs', value: '$85K', contact: 'Marcus Johnson', probability: 55 }
-      ]
-    },
-    {
-      id: 'proposal',
-      title: 'Proposal',
-      color: 'success',
-      deals: [
-        { id: 5, company: 'Global Solutions', value: '$200K', contact: 'Elena Rodriguez', probability: 80 }
-      ]
-    },
-    {
-      id: 'negotiation',
-      title: 'Negotiation',
-      color: 'accent',
-      deals: [
-        { id: 6, company: 'Enterprise Co', value: '$350K', contact: 'David Park', probability: 85 }
-      ]
+  const [deals, setDeals] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchDeals() {
+      try {
+        const data = await apiClient.get('/deals');
+        setDeals(data);
+      } catch (error) {
+        console.error("Failed to fetch deals", error);
+      } finally {
+        setLoading(false);
+      }
     }
-  ]);
+    fetchDeals();
+  }, []);
+
+  const handleDrop = async (e, targetStatus) => {
+    e.preventDefault();
+    const dealId = e.dataTransfer.getData('dealId');
+    if (!dealId) return;
+
+    // Optimistic update
+    setDeals(prev => prev.map(d => d.id === dealId ? { ...d, status: targetStatus } : d));
+
+    try {
+      await apiClient.patch(`/deals/${dealId}`, { status: targetStatus });
+    } catch (error) {
+      console.error('Failed to update deal status', error);
+    }
+  };
+
+  const columns = [
+    { id: 'prospect', title: 'Prospecting', color: 'neutral' },
+    { id: 'qualified', title: 'Qualified', color: 'accent' },
+    { id: 'proposal', title: 'Proposal', color: 'success' },
+    { id: 'negotiation', title: 'Negotiation', color: 'accent' },
+  ].map(col => ({
+    ...col,
+    deals: deals.filter(d => d.status === col.id)
+  }));
 
   return (
     <section id="deals" className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
@@ -62,6 +66,8 @@ export default function DealsKanban() {
               <div
                 key={column.id}
                 className="flex-1 min-w-[280px] bg-bg-secondary rounded-xl p-4"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => handleDrop(e, column.id)}
               >
                 {/* Column Header */}
                 <div className="flex items-center justify-between mb-4">
@@ -91,6 +97,7 @@ export default function DealsKanban() {
                       key={deal.id}
                       className="card p-4 cursor-move hover:shadow-lg transition-shadow duration-200 group"
                       draggable="true"
+                      onDragStart={(e) => e.dataTransfer.setData('dealId', deal.id)}
                       role="article"
                       aria-label={`Deal with ${deal.company}`}
                       tabIndex={0}
