@@ -1,10 +1,12 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, AlertTriangle, Users, LogOut } from "lucide-react"
+import { LayoutDashboard, AlertTriangle, Users, LogOut, Briefcase, Inbox } from "lucide-react"
 
 const menuItems = [
   { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { id: "inbox", icon: Inbox, label: "AI Inbox" },
+  { id: "deals", icon: Briefcase, label: "Deals" },
   { id: "escalations", icon: AlertTriangle, label: "Escalation" },
   { id: "customers", icon: Users, label: "Customers" },
 ]
