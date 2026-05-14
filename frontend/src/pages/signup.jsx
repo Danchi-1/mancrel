@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import { apiClient } from '@/lib/apiClient'
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -60,33 +61,22 @@ export default function SignUpPage() {
     }
 
     try {
-      const res = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          businessName: formData.businessName,
-          email: formData.email,
-          phone: formData.phone,
-          industrySector: formData.industrySector,
-          businessType: formData.businessType,
-          password: formData.password,
-          marketingConsent: formData.marketingConsent,
-          termsAccepted: formData.termsAccepted,
-        }),
-      })
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: res.statusText }))
-        setMessage({ type: 'error', text: err.error || 'Sign up failed' })
-      } else {
-        const data = await res.json().catch(() => ({}))
-        setMessage({ type: 'success', text: data.message || 'Account created. Check your email.' })
-      }
+      const data = await apiClient.post('/auth/signup', {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        business_name: formData.businessName,
+        email: formData.email,
+        phone: formData.phone,
+        industry_sector: formData.industrySector,
+        business_type: formData.businessType,
+        password: formData.password,
+        marketing_consent: formData.marketingConsent,
+        terms_accepted: formData.termsAccepted,
+      }, false);
+      
+      setMessage({ type: 'success', text: 'Account created! Please sign in.' })
     } catch (err) {
-      // If backend isn't available, show a mock success so user can continue
-      setMessage({ type: 'success', text: 'Account created (mock). No backend detected.' })
+      setMessage({ type: 'error', text: err.message || 'Sign up failed' })
     } finally {
       setLoading(false)
     }
