@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { Logo } from './Logo'
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -12,12 +13,7 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <a href="/" className="flex items-center space-x-2 group">
-              <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center transition-transform duration-200 group-hover:scale-110">
-                <span className="text-white font-display font-bold text-lg">M</span>
-              </div>
-              <span className="text-xl font-display font-bold text-primary">Mancrel</span>
-            </a>
+            <Logo />
           </div>
 
           {/* Desktop Navigation */}
