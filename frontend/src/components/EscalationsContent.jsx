@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Search, RefreshCw, SlidersHorizontal } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { apiClient } from "@/lib/apiClient"
 const escalationData = [
   {
     id: 1,
@@ -116,9 +117,25 @@ const StatusBadge = ({ status }) => {
 }
 
 export function EscalationsContent() {
+  const [escalations, setEscalations] = useState([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
 
-  const filteredData = escalationData.filter((item) => item.customer.toLowerCase().includes(searchQuery.toLowerCase()))
+  useEffect(() => {
+    async function fetchEscalations() {
+      try {
+        const data = await apiClient.get('/escalations');
+        setEscalations(data);
+      } catch (error) {
+        console.error("Failed to fetch escalations", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchEscalations();
+  }, [])
+
+  const filteredData = escalations.filter((item) => item.customer_name.toLowerCase().includes(searchQuery.toLowerCase()))
 
   return (
     <div className="p-6">
@@ -168,25 +185,29 @@ export function EscalationsContent() {
               </tr>
             </thead>
             <tbody>
-              {filteredData.map((item) => (
+              {filteredData.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="py-4 text-center text-gray-500">No escalations found</td>
+                </tr>
+              ) : filteredData.map((item) => (
                 <tr key={item.id} className="border-b hover:bg-gray-50">
                   <td className="py-4 px-4">
-                    <span className="text-sm text-[#4F46E5] font-medium">{item.customer}</span>
+                    <span className="text-sm text-[#4F46E5] font-medium">{item.customer_name}</span>
                   </td>
                   <td className="py-4 px-4">
-                    <span className="text-sm text-[#4F46E5]">{item.issueType}</span>
+                    <span className="text-sm text-[#4F46E5] truncate block max-w-[200px]">{item.issue_type}</span>
                   </td>
                   <td className="py-4 px-4">
-                    <ChannelBadge channel={item.channel} />
+                    <ChannelBadge channel={item.priority || "Normal"} />
                   </td>
                   <td className="py-4 px-4">
-                    <span className="text-sm text-gray-700">{item.assignedTo}</span>
+                    <span className="text-sm text-gray-700">{item.assigned_to || "Unassigned"}</span>
                   </td>
                   <td className="py-4 px-4">
                     <StatusBadge status={item.status} />
                   </td>
                   <td className="py-4 px-4">
-                    <span className="text-sm text-gray-500">{item.date}</span>
+                    <span className="text-sm text-gray-500">{new Date(item.date).toLocaleString()}</span>
                   </td>
                   <td className="py-4 px-4">
                     <button className="text-sm text-[#4F46E5] hover:underline">View</button>
