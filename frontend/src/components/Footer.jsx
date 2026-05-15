@@ -1,3 +1,5 @@
+import { Logo } from "./Logo"
+
 export default function Footer() {
   const footerLinks = {
     product: [
@@ -34,10 +36,7 @@ export default function Footer() {
           {/* Brand Column */}
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-                <span className="text-white font-display font-bold text-lg">M</span>
-              </div>
-              <span className="text-xl font-display font-bold">Mancrel</span>
+              <Logo lightText={true} />
             </div>
             <p className="text-neutral-300 text-sm leading-relaxed mb-4">
               AI-powered CRM that transforms how you build and nurture customer relationships.
