@@ -24,7 +24,7 @@ export default function Home() {
           <Features />
           <CatalogPreview />
           <DealsKanban />
-          <AIInbox />
+          <AIInbox isMarketingPreview={true} />
         </main>
         <Footer />
       </div>

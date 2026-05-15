@@ -3,12 +3,64 @@
 import { useState, useEffect } from 'react'
 import { apiClient } from '@/lib/apiClient'
 
-export default function AIInbox() {
+const dummyMessages = [
+  {
+    id: 1,
+    from: "Sarah Jenkins",
+    company: "TechFlow Inc",
+    subject: "Enterprise License Upgrade",
+    preview: "Hi, we're looking to upgrade our current team plan to enterprise. Could you share the pricing tiers?",
+    time: "10:24 AM",
+    unread: true,
+    sentiment: "positive",
+    aiSuggestion: {
+      confidence: 94,
+      text: "Drafting response with Enterprise pricing PDF and proposing a 15-min discovery call."
+    }
+  },
+  {
+    id: 2,
+    from: "Michael Chang",
+    company: "DataSync",
+    subject: "API Integration Issue",
+    preview: "The v2 endpoints keep timing out when we run our batch sync. Urgent help needed.",
+    time: "09:12 AM",
+    unread: true,
+    sentiment: "concern",
+    aiSuggestion: {
+      confidence: 88,
+      text: "Flagging for high priority escalation. Drafting apology and linking to status page."
+    }
+  },
+  {
+    id: 3,
+    from: "Emma Woods",
+    company: "RetailCo",
+    subject: "Q3 Vendor Inquiry",
+    preview: "Do you have capacity to handle our Q3 shipment volumes? Looking for a new logistics partner.",
+    time: "Yesterday",
+    unread: false,
+    sentiment: "positive",
+    aiSuggestion: {
+      confidence: 91,
+      text: "Drafting response highlighting Q3 capacity metrics and attaching our logistics case study."
+    }
+  }
+];
+
+export default function AIInbox({ isMarketingPreview = false, isDashboard = false }) {
   const [messages, setMessages] = useState([])
   const [selectedMessage, setSelectedMessage] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (isMarketingPreview) {
+      setMessages(dummyMessages);
+      setSelectedMessage(dummyMessages[0]);
+      setLoading(false);
+      return;
+    }
+
     async function fetchMessages() {
       try {
         const data = await apiClient.get('/messaging/inbox');
@@ -21,7 +73,7 @@ export default function AIInbox() {
       }
     }
     fetchMessages();
-  }, []);
+  }, [isMarketingPreview]);
 
   const getSentimentColor = (sentiment) => {
     switch (sentiment) {
@@ -43,20 +95,22 @@ export default function AIInbox() {
   }
 
   return (
-    <section id="ai" className="py-24 px-4 sm:px-6 lg:px-8 bg-bg-secondary">
-      <div className="max-w-7xl mx-auto">
+    <section id="ai" className={`bg-bg-secondary ${isDashboard ? 'h-full flex flex-col' : 'py-24 px-4 sm:px-6 lg:px-8'}`}>
+      <div className={`w-full max-w-7xl mx-auto ${isDashboard ? 'h-full flex flex-col' : ''}`}>
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-4xl sm:text-5xl font-display font-bold text-primary mb-4">
-            AI-Powered Inbox
-          </h2>
-          <p className="text-lg text-neutral-600">
-            Never miss a signal. AI analyzes sentiment, suggests responses, and flags urgent opportunities in real-time.
-          </p>
-        </div>
+        {!isDashboard && (
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-4xl sm:text-5xl font-display font-bold text-primary mb-4">
+              AI-Powered Inbox
+            </h2>
+            <p className="text-lg text-neutral-600">
+              Never miss a signal. AI analyzes sentiment, suggests responses, and flags urgent opportunities in real-time.
+            </p>
+          </div>
+        )}
 
         {/* Inbox Interface */}
-        <div className="grid lg:grid-cols-5 gap-6">
+        <div className={`grid lg:grid-cols-5 gap-6 ${isDashboard ? 'h-full flex-1 min-h-0 p-4 md:p-6' : ''}`}>
           {/* Message List */}
           <div className="lg:col-span-2 card overflow-hidden">
             <div className="p-4 border-b border-neutral-100">

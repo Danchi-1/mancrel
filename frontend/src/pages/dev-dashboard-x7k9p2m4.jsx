@@ -49,9 +49,9 @@ export default function DevDashboardPage() {
       <Sidebar isOpen={sidebarOpen} activeView={activeView} setActiveView={setActiveView} handleLogout={handleLogout} />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden w-full relative">
         {/* Top Header */}
-        <header className="bg-white border-b h-16 flex items-center justify-between px-6">
+        <header className="bg-white border-b h-16 flex items-center justify-between px-4 sm:px-6 shrink-0">
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-gray-500 hover:text-gray-700">
             <Menu className="w-6 h-6" />
           </button>
@@ -94,7 +94,7 @@ export default function DevDashboardPage() {
                   </div>
                 </div>
               )}
-              {activeView === "inbox" && <AIInbox />}
+              {activeView === "inbox" && <AIInbox isDashboard={true} />}
               {activeView === "deals" && <DealsKanban />}
               {activeView === "escalations" && <EscalationsContent />}
               {activeView === "customers" && <CustomersContent />}
