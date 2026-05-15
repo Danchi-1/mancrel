@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { apiClient } from '@/lib/apiClient'
+import { Logo } from '@/components/Logo'
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -85,8 +86,11 @@ export default function SignUpPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-bg py-12 px-4">
       <div className="max-w-lg w-full p-8 bg-white rounded-xl shadow-md">
-        <h1 className="text-2xl font-display font-bold mb-4">Create an account</h1>
-        <p className="text-sm text-neutral-600 mb-6">Start your free trial — no credit card required.</p>
+        <div className="flex justify-center mb-8">
+          <Logo />
+        </div>
+        <h1 className="text-2xl font-display font-bold mb-4 text-center">Create an account</h1>
+        <p className="text-sm text-neutral-600 mb-6 text-center">Start your free trial — no credit card required.</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Name Fields */}

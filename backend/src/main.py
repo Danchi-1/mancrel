@@ -36,7 +36,11 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from pathlib import Path
+
+# Add src/ to PYTHONPATH so 'api' can be found
+sys.path.insert(0, str(Path(__file__).parent))
 
 # ── 1. Load .env before importing anything that reads env vars ────────────────
 # backend/.env lives one directory above backend/src/, so we go up twice
@@ -55,6 +59,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # ── 3. Internal router imports ────────────────────────────────────────────────
 from api.v1.messaging.routes import router as messaging_router
+from api.v1.auth.routes import router as auth_router
+from api.v1.deals.routes import router as deals_router
+from api.v1.customers.routes import router as customers_router
+from api.v1.escalations.routes import router as escalations_router
 
 # ── Logging setup ─────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -106,6 +114,10 @@ app.add_middleware(
 # ── 6. Routers ────────────────────────────────────────────────────────────────
 # prefix="/api/v1" + router prefix="/messaging" → /api/v1/messaging/...
 app.include_router(messaging_router, prefix="/api/v1")
+app.include_router(auth_router, prefix="/api/v1")
+app.include_router(deals_router, prefix="/api/v1")
+app.include_router(customers_router, prefix="/api/v1")
+app.include_router(escalations_router, prefix="/api/v1")
 
 # Future routers will be added here:
 # from api.v1.auth.routes import router as auth_router

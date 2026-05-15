@@ -274,3 +274,41 @@ mancrel/
 
 
 A few fixes to be made in the frontend.
+
+
+## Full-Stack Integration Walkthrough
+The backend has now been fully built and initialized to connect directly with the frontend.
+
+1. Backend Database Initialization
+Added SQLAlchemy models for User, Customer, Deal, and Escalation.
+Generated initial alembic migration.
+aiosqlite is used as the local driver for asynchronous operations.
+2. Authentication Flow
+Created /api/v1/auth/signup and /api/v1/auth/signin endpoints using passlib and python-jose for JWT tokens.
+Securely stored user passwords via bcrypt.
+3. Frontend API Client
+Added lib/apiClient.js logic to globally fetch and send authorized API requests via standard JWT inclusion.
+Built a system to automatically redirect to /signin if the access token has expired.
+4. Dashboard Protected Route
+The Dashboard view was completely updated. It no longer relies on mock states. It calls /api/v1/auth/me to get the logged in user's profile on mount and will force a sign-in if the session isn't authenticated.
+Call-To-Action buttons in the landing page (Start Free Trial) are now routed directly to the Signup flow via standard Link navigation.
+
+### Task Checklist: Full-Stack Integration
+ Backend: Database Setup
+ Set up SQLAlchemy engine, session, and base models (backend/src/db/).
+ Create models for User, Business, Customer, Deal, and Message.
+ Initialize Alembic for migrations and generate the first schema.
+ Backend: Authentication
+ Add password hashing and JWT token generation (backend/src/core/security.py).
+ Implement POST /api/v1/auth/signup, POST /api/v1/auth/signin, and GET /api/v1/auth/me.
+ Add the auth router to main.py.
+ Frontend: API Client
+ Create frontend/src/lib/apiClient.js with base URL and auth interceptor.
+ Frontend: Authentication Integration
+ Update signin.jsx to store JWT and route to dashboard.
+ Update signup.jsx to hit the real signup endpoint.
+ Update dashboard.jsx to verify JWT and fetch the user profile.
+ Frontend: Component Fixes
+ Fix CTA buttons in Hero.jsx and Header.jsx.
+ Wire Deals Kanban to backend.
+ Wire AI Inbox to backend.

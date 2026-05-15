@@ -31,7 +31,13 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Form, HTTPException, status
+from fastapi import APIRouter, Form, HTTPException, status, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
+from db.session import get_db
+from db.models import Message
+from api.v1.auth.deps import get_current_user
 
 from .controllers import handle_classify, handle_reply, handle_twilio_webhook
 from .schemas import ClassifyRequest, ClassifyResponse, ReplyRequest, ReplyResponse, WebhookResponse
@@ -45,6 +51,31 @@ router = APIRouter(
     prefix="/messaging",
     tags=["Messaging"],  # groups these endpoints under "Messaging" in the Swagger UI
 )
+
+@router.get("/inbox")
+async def get_inbox(db: AsyncSession = Depends(get_db), current_user = Depends(get_current_user)):
+    stmt = select(Message).order_by(Message.created_at.desc())
+    result = await db.execute(stmt)
+    messages = result.scalars().all()
+    
+    # Format for frontend AIInbox.jsx
+    formatted = []
+    for msg in messages:
+        formatted.append({
+            "id": msg.id,
+            "from": msg.from_name or "Unknown",
+            "company": msg.company or "Unknown Company",
+            "subject": msg.subject or "Message",
+            "preview": msg.preview or msg.full_text[:50],
+            "time": msg.time or msg.created_at.strftime("%I:%M %p"),
+            "unread": msg.unread,
+            "sentiment": msg.sentiment,
+            "aiSuggestion": {
+                "confidence": msg.ai_suggestion_confidence or 0,
+                "text": msg.ai_suggestion_text or "No suggestion"
+            }
+        })
+    return formatted
 
 
 @router.post(
@@ -90,6 +121,7 @@ async def reply_endpoint(request: ReplyRequest) -> ReplyResponse:
     ),
 )
 async def twilio_webhook(
+    db: AsyncSession = Depends(get_db),
     # Twilio sends form data, not JSON — use Form(...) instead of a Pydantic body.
     # The `...` means the field is required; use `= Form(None)` for optional fields.
     From: str = Form(..., description="Sender WhatsApp number, e.g. whatsapp:+2348012345678"),
@@ -105,4 +137,4 @@ async def twilio_webhook(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Empty message body received from Twilio.",
         )
-    return await handle_twilio_webhook(from_number=From, body=Body)
+    return await handle_twilio_webhook(db=db, from_number=From, body=Body)

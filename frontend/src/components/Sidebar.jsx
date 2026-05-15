@@ -3,7 +3,6 @@
 import { cn } from "@/lib/utils"
 import { LayoutDashboard, AlertTriangle, Users, LogOut, Briefcase, Inbox } from "lucide-react"
 import { Logo } from "./Logo"
-import { Logo } from "./Logo"
 
 const menuItems = [
   { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },

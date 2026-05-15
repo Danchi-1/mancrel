@@ -26,8 +26,11 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+import os
 
 from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from db.models import Message
 
 from .pipeline import classify, generate_reply
 from .schemas import (
@@ -153,46 +156,69 @@ async def handle_reply(request: ReplyRequest) -> ReplyResponse:
 
 # webhook  (Twilio inbound WhatsApp)
 async def handle_twilio_webhook(
+    db: AsyncSession,
     from_number: str,
     body: str,
 ) -> WebhookResponse:
     """
     Process an inbound Twilio WhatsApp message.
-
-    At this stage the handler classifies + generates a reply and returns a
-    structured log object.  The actual sending is stubbed with a log line
-    because we don't have Twilio credentials wired yet.
-
-    Next steps for full Twilio integration:
-      1. Add TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN to .env
-      2. pip install twilio
-      3. Replace the stub below with:
-             client = Client(sid, token)
-             client.messages.create(
-                 from_="whatsapp:<your_number>",
-                 to=from_number,
-                 body=result["reply"],
-             )
-      4. Add Twilio request signature validation (security — prevents spoofed
-         webhooks hitting your endpoint).
     """
     logger.info("[webhook] Inbound from %s: %s", from_number, body[:80])
 
     try:
         label = _safe_classify(body)
         result = generate_reply(message=body, classification=label)
-
-        # --- STUB: replace with real Twilio send ---
-        logger.info(
-            "[webhook] Reply drafted (NOT sent yet): %s…", result["reply"][:60]
+        
+        reply_text = result["reply"]
+        confidence = result.get("confidence", 1.0)
+        
+        # Save inbound message to DB
+        new_msg = Message(
+            from_name=from_number,
+            company="Unknown (WhatsApp)",
+            subject="WhatsApp Inquiry",
+            full_text=body,
+            preview=body[:50],
+            unread=True,
+            sentiment="neutral", # or extract from label
+            ai_suggestion_confidence=confidence * 100,
+            ai_suggestion_text=reply_text
         )
-        # -------------------------------------------
+        db.add(new_msg)
+        await db.commit()
+        await db.refresh(new_msg)
+
+        logger.info(
+            "[webhook] Reply drafted: %s…", reply_text[:60]
+        )
+        
+        reply_queued = False
+        
+        # Real Twilio Send
+        from twilio.rest import Client
+        
+        account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+        auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
+        twilio_number = os.environ.get("TWILIO_PHONE_NUMBER")
+        
+        if account_sid and auth_token and twilio_number:
+            client = Client(account_sid, auth_token)
+            
+            message = client.messages.create(
+                from_=twilio_number,
+                body=reply_text,
+                to=from_number
+            )
+            logger.info(f"Sent WhatsApp message: {message.sid}")
+            reply_queued = True
+        else:
+            logger.warning("Twilio credentials not fully set up. Message not sent.")
 
         return WebhookResponse(
             status="ok",
             from_number=from_number,
             label=label,
-            reply_queued=False,  # will be True once Twilio sending is wired
+            reply_queued=reply_queued,
         )
 
     except HTTPException:
