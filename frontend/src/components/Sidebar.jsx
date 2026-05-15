@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { LayoutDashboard, AlertTriangle, Users, LogOut, Briefcase, Inbox } from "lucide-react"
 import { Logo } from "./Logo"
