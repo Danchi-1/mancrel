@@ -14,6 +14,15 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     
     # DB
+    @property
+    def database_url_async(self) -> str:
+        url = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./mancrel.db")
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return url
+        
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./mancrel.db")
     
     # Security

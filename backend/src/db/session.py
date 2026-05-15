@@ -9,10 +9,10 @@ from core.config import settings
 
 # Create async engine
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    settings.database_url_async,
     echo=False,
     # SQLite-specific config, ignored by Postgres
-    connect_args={"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {}
+    connect_args={"check_same_thread": False} if "sqlite" in settings.database_url_async else {}
 )
 
 # Create session factory
