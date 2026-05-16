@@ -3,11 +3,25 @@
 import { useState, useEffect } from 'react'
 import { apiClient } from '@/lib/apiClient'
 
-export default function DealsKanban() {
+const dummyDeals = [
+  { id: '1', company: 'TechFlow Inc', contact: 'Sarah Jenkins', value: '₦2.4M', probability: 82, status: 'proposal' },
+  { id: '2', company: 'DataSync Ltd', contact: 'Michael Chang', value: '₦890K', probability: 65, status: 'qualified' },
+  { id: '3', company: 'RetailCo', contact: 'Emma Woods', value: '₦5.1M', probability: 91, status: 'negotiation' },
+  { id: '4', company: 'BuildRight', contact: 'James Okafor', value: '₦1.2M', probability: 40, status: 'prospect' },
+  { id: '5', company: 'FinServe HQ', contact: 'Amina Bello', value: '₦3.7M', probability: 75, status: 'qualified' },
+];
+
+export default function DealsKanban({ isMarketingPreview = false }) {
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (isMarketingPreview) {
+      setDeals(dummyDeals);
+      setLoading(false);
+      return;
+    }
+
     async function fetchDeals() {
       try {
         const data = await apiClient.get('/deals');
@@ -19,7 +33,7 @@ export default function DealsKanban() {
       }
     }
     fetchDeals();
-  }, []);
+  }, [isMarketingPreview]);
 
   const handleDrop = async (e, targetStatus) => {
     e.preventDefault();

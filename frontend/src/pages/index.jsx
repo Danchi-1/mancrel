@@ -22,7 +22,7 @@ export default function Home() {
           <Hero />
           <Features />
           <CatalogPreview />
-          <DealsKanban />
+          <DealsKanban isMarketingPreview={true} />
           <AIInbox isMarketingPreview={true} />
         </main>
         <Footer />
