@@ -21,6 +21,16 @@ class Settings(BaseSettings):
             url = url.replace("postgres://", "postgresql+asyncpg://", 1)
         elif url.startswith("postgresql://"):
             url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            
+        # asyncpg does not accept sslmode or channel_binding
+        if "?" in url:
+            base, qs = url.split("?", 1)
+            # asyncpg uses ssl=require instead of sslmode=require
+            qs = qs.replace("sslmode=require", "ssl=require")
+            qs = qs.replace("channel_binding=require", "")
+            qs = qs.replace("&&", "&").strip("&")
+            url = f"{base}?{qs}" if qs else base
+            
         return url
         
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./mancrel.db")
