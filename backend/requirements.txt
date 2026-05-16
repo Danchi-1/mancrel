@@ -26,4 +26,5 @@ python-jose[cryptography]>=3.3.0
 # ── Utilities ─────────────────────────────────────────────────────────────────
 python-dotenv>=1.0.0    # loads .env file
 pydantic-settings>=2.0.0
+pydantic[email]>=2.10.3
 twilio==9.10.9
