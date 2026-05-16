@@ -19,8 +19,9 @@ alembic>=1.13.0
 asyncpg>=0.29.0
 aiosqlite>=0.20.0
 
-# ── Authentication ────────────────────────────────────────────────────────────
-passlib[bcrypt]>=1.7.4
+# ── Authentication ──────────────────────────────────────────────────────────
+# passlib is abandoned and broken with bcrypt 4.x — using bcrypt directly instead
+bcrypt>=4.0.0
 python-jose[cryptography]>=3.3.0
 
 # ── Utilities ─────────────────────────────────────────────────────────────────
