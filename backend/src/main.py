@@ -89,24 +89,20 @@ app = FastAPI(
 
 
 # ── 5. CORS ───────────────────────────────────────────────────────────────────
-# allow_origins controls which frontend origins can call this API.
-# During development "*" (all origins) is convenient.
-# In production, replace with your exact frontend URL(s):
-#   ["https://mancrel.vercel.app", "https://mancrel.com"]
-_cors_origins_raw = os.environ.get("CORS_ALLOWED_ORIGINS", "*")
-_cors_origins = (
-    ["*"]
-    if _cors_origins_raw == "*"
-    else [o.strip() for o in _cors_origins_raw.split(",")]
+# IMPORTANT: allow_credentials=True is incompatible with allow_origins=["*"].
+# The CORS spec forbids wildcard origins when credentials are involved.
+# We always list explicit origins — at minimum the Vercel deployment and localhost.
+_cors_origins_raw = os.environ.get(
+    "CORS_ALLOWED_ORIGINS",
+    "https://mancrel.vercel.app,http://localhost:3000,http://127.0.0.1:3000"
 )
+_cors_origins = [o.strip() for o in _cors_origins_raw.split(",") if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
     allow_credentials=True,
-    # Which HTTP methods the browser is allowed to send.
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    # Which request headers the browser is allowed to include.
     allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
 )
 
