@@ -10,6 +10,11 @@ from alembic import context
 
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
+
+env_path = Path(__file__).parent.parent / ".env"
+load_dotenv(env_path)
+
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from core.config import settings
@@ -19,7 +24,7 @@ from db.models import Base
 # access to the values within the .ini file in use.
 config = context.config
 
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+config.set_main_option("sqlalchemy.url", settings.database_url_async)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
