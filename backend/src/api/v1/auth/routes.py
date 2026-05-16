@@ -30,7 +30,8 @@ async def signup(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
         industry_sector=user_in.industry_sector,
         business_type=user_in.business_type,
         hashed_password=get_password_hash(user_in.password),
-        marketing_consent=user_in.marketing_consent
+        marketing_consent=user_in.marketing_consent,
+        terms_accepted=user_in.terms_accepted,
     )
     db.add(user)
     await db.commit()
@@ -45,7 +46,7 @@ async def signin(user_in: UserLogin, db: AsyncSession = Depends(get_db)):
     
     if not user or not verify_password(user_in.password, user.hashed_password):
         raise HTTPException(
-            status_code=400, detail="Incorrect email or password"
+            status_code=401, detail="Incorrect email or password"
         )
     
     access_token = create_access_token(subject=user.id)

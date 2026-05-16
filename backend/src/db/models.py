@@ -28,6 +28,7 @@ class User(Base):
     # Flags
     is_active = Column(Boolean, default=True)
     marketing_consent = Column(Boolean, default=False)
+    terms_accepted = Column(Boolean, default=False)
     whatsapp_connected = Column(Boolean, default=False)
     
     created_at = Column(DateTime, default=datetime.utcnow)
