@@ -37,6 +37,10 @@ logger = logging.getLogger(__name__)
 META_GRAPH_VERSION = "v19.0"
 META_API_BASE = f"https://graph.facebook.com/{META_GRAPH_VERSION}"
 
+TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
+TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
+TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER")  # e.g. "whatsapp:+14155238886"
+
 
 # ---------------------------------------------------------------------------
 # /classify
@@ -244,3 +248,119 @@ def _label_to_sentiment(label: str) -> str:
         "irrelevant_or_inappropriate": "neutral",
     }
     return mapping.get(label, "neutral")
+
+
+# ---------------------------------------------------------------------------
+# Twilio WhatsApp webhook handler
+# ---------------------------------------------------------------------------
+
+async def handle_twilio_webhook(
+    db: AsyncSession,
+    sender_phone: str,
+    sender_name: str,
+    message_text: str,
+    message_sid: str | None,
+) -> WebhookResponse:
+    """
+    Process an inbound Twilio WhatsApp message.
+    Reuses the same conversation history, AI pipeline, and DB storage
+    as the Meta handler — only the reply delivery differs (Twilio REST API).
+    """
+    logger.info("[twilio_webhook] Inbound from %s (%s): %s", sender_name, sender_phone, message_text[:80])
+
+    # 1. Deduplicate by Twilio MessageSid
+    if message_sid:
+        existing = await db.execute(select(Message).where(Message.wa_message_id == message_sid))
+        if existing.scalar_one_or_none():
+            logger.info("[twilio_webhook] Duplicate %s, skipping.", message_sid)
+            return WebhookResponse(status="duplicate", from_number=sender_phone, label="", reply_queued=False)
+
+    # 2. Fetch conversation history (last 10 messages with this sender)
+    history_result = await db.execute(
+        select(Message)
+        .where(Message.sender_phone == sender_phone)
+        .order_by(Message.created_at.desc())
+        .limit(10)
+    )
+    history_msgs = list(reversed(history_result.scalars().all()))
+    conversation_history = [
+        {"role": "user" if m.direction == "inbound" else "assistant", "content": m.full_text}
+        for m in history_msgs
+    ]
+
+    # 3. Classify + generate AI reply
+    label = _safe_classify(message_text)
+    result = generate_reply(
+        message=message_text,
+        classification=label,
+        catalogue_items=None,
+        conversation_history=conversation_history,
+    )
+    reply_text = result["reply"]
+    confidence = result.get("confidence", 1.0)
+
+    # 4. Save inbound message
+    now_str = datetime.utcnow().strftime("%I:%M %p")
+    inbound_msg = Message(
+        sender_phone=sender_phone,
+        direction="inbound",
+        wa_message_id=message_sid,
+        from_name=sender_name,
+        company="WhatsApp Customer",
+        subject=f"Message from {sender_name}",
+        full_text=message_text,
+        preview=message_text[:80],
+        time=now_str,
+        unread=True,
+        sentiment=_label_to_sentiment(label),
+        ai_suggestion_confidence=confidence * 100,
+        ai_suggestion_text=reply_text,
+    )
+    db.add(inbound_msg)
+    await db.flush()
+
+    # 5. Send reply via Twilio
+    reply_queued = False
+    twilio_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+    twilio_token = os.environ.get("TWILIO_AUTH_TOKEN")
+    twilio_number = os.environ.get("TWILIO_PHONE_NUMBER")  # e.g. "whatsapp:+14155238886"
+
+    if twilio_sid and twilio_token and twilio_number:
+        try:
+            from twilio.rest import Client as TwilioClient
+            client = TwilioClient(twilio_sid, twilio_token)
+            sent = client.messages.create(
+                from_=twilio_number,
+                to=f"whatsapp:{sender_phone}",
+                body=reply_text,
+            )
+            reply_queued = True
+            logger.info("[twilio_webhook] Reply sent via Twilio: %s", sent.sid)
+
+            # Save outbound reply
+            outbound_msg = Message(
+                sender_phone=sender_phone,
+                direction="outbound",
+                wa_message_id=sent.sid,
+                from_name="Mancrel AI",
+                full_text=reply_text,
+                preview=reply_text[:80],
+                time=now_str,
+                unread=False,
+                sentiment="neutral",
+            )
+            db.add(outbound_msg)
+        except Exception as e:
+            logger.error("[twilio_webhook] Failed to send Twilio reply: %s", e)
+    else:
+        logger.warning("[twilio_webhook] Twilio credentials not configured — reply not sent.")
+
+    await db.commit()
+
+    return WebhookResponse(
+        status="ok",
+        from_number=sender_phone,
+        label=label,
+        reply_queued=reply_queued,
+    )
+

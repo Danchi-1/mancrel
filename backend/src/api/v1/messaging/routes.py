@@ -4,12 +4,13 @@ api/v1/messaging/routes.py
 FastAPI router for /api/v1/messaging endpoints.
 
 Endpoints:
-  GET  /webhook          — Meta webhook verification challenge
-  POST /webhook          — Inbound WhatsApp messages from Meta
-  GET  /inbox            — Fetch message inbox for dashboard
+  POST /twilio/webhook    — Inbound WhatsApp messages from Twilio (ACTIVE)
+  GET  /webhook           — Meta webhook verification (ready for future switch)
+  POST /webhook           — Meta inbound messages (ready for future switch)
+  GET  /inbox             — Fetch message inbox for dashboard
   GET  /conversations/{phone} — Full conversation thread with a sender
-  POST /classify         — Manual intent classification
-  POST /reply            — Manual AI reply generation
+  POST /classify          — Manual intent classification
+  POST /reply             — Manual AI reply generation
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Request, Query, HTTPException, status, Depends
+from fastapi import APIRouter, Form, Request, Query, HTTPException, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -25,7 +26,7 @@ from db.session import get_db
 from db.models import Message, User
 from api.v1.auth.deps import get_current_user
 
-from .controllers import handle_classify, handle_reply, handle_meta_webhook
+from .controllers import handle_classify, handle_reply, handle_meta_webhook, handle_twilio_webhook
 from .schemas import ClassifyRequest, ClassifyResponse, ReplyRequest, ReplyResponse, WebhookResponse
 
 logger = logging.getLogger(__name__)
@@ -34,7 +35,40 @@ router = APIRouter(prefix="/messaging", tags=["Messaging"])
 
 
 # ---------------------------------------------------------------------------
-# Meta webhook verification (GET)
+# Twilio WhatsApp webhook (POST) — ACTIVE
+# ---------------------------------------------------------------------------
+
+@router.post("/twilio/webhook", response_model=WebhookResponse, summary="Twilio inbound WhatsApp webhook")
+async def twilio_webhook(
+    db: AsyncSession = Depends(get_db),
+    # Twilio sends form data (application/x-www-form-urlencoded)
+    From: str = Form(..., description="Sender WhatsApp number e.g. whatsapp:+2348012345678"),
+    Body: str = Form(..., description="Raw message text"),
+    ProfileName: str = Form(None),
+    MessageSid: str = Form(None),  # Twilio's unique message ID (used for dedup)
+    WaId: str = Form(None),        # Sender phone without prefix/country formatting
+    AccountSid: str = Form(None),
+    NumMedia: str = Form("0"),
+) -> WebhookResponse:
+    """Receives inbound WhatsApp messages from Twilio sandbox/production."""
+    if not Body.strip():
+        raise HTTPException(status_code=400, detail="Empty message body.")
+
+    # Strip Twilio's "whatsapp:" prefix to get a clean phone number
+    sender_phone = From.replace("whatsapp:", "").strip()
+    sender_name = ProfileName or sender_phone
+
+    return await handle_twilio_webhook(
+        db=db,
+        sender_phone=sender_phone,
+        sender_name=sender_name,
+        message_text=Body,
+        message_sid=MessageSid,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Meta webhook verification (GET) — ready for future switch
 # ---------------------------------------------------------------------------
 
 @router.get("/webhook", summary="Meta webhook verification")
@@ -44,13 +78,7 @@ async def meta_webhook_verify(
     hub_verify_token: Optional[str] = Query(None, alias="hub.verify_token"),
     hub_challenge: Optional[str] = Query(None, alias="hub.challenge"),
 ):
-    """
-    Meta calls this endpoint when you register the webhook URL.
-    We must return hub.challenge if the verify token matches.
-    Each user has their own verify token stored in the DB.
-    """
     if hub_mode == "subscribe" and hub_verify_token and hub_challenge:
-        # Check if this token matches any user's verify token
         result = await db.execute(
             select(User).where(User.wa_webhook_verify_token == hub_verify_token)
         )
@@ -59,7 +87,6 @@ async def meta_webhook_verify(
             logger.info("[webhook_verify] Verified for user %s", user.id)
             from fastapi.responses import PlainTextResponse
             return PlainTextResponse(hub_challenge)
-
     raise HTTPException(status_code=403, detail="Verification token mismatch")
 
 
