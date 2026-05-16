@@ -30,6 +30,12 @@ class User(Base):
     marketing_consent = Column(Boolean, default=False)
     terms_accepted = Column(Boolean, default=False)
     whatsapp_connected = Column(Boolean, default=False)
+
+    # WhatsApp Business (Meta Cloud API) credentials — stored per user
+    wa_phone_number_id = Column(String, nullable=True)    # Meta Phone Number ID
+    wa_access_token = Column(String, nullable=True)       # Meta permanent access token
+    wa_business_account_id = Column(String, nullable=True)  # WABA ID
+    wa_webhook_verify_token = Column(String, nullable=True)  # random secret for webhook verification
     
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -68,12 +74,17 @@ class Message(Base):
     __tablename__ = "messages"
     
     id = Column(String, primary_key=True, default=generate_uuid)
+    # Conversation tracking
+    sender_phone = Column(String, nullable=True, index=True)  # e.g. "+2348012345678"
+    direction = Column(String, default="inbound")              # "inbound" | "outbound"
+    wa_message_id = Column(String, nullable=True, unique=True) # Meta message ID (dedup)
+    # Display fields
     from_name = Column(String, nullable=True)
     company = Column(String, nullable=True)
     subject = Column(String, nullable=True)
     preview = Column(Text, nullable=True)
     full_text = Column(Text, nullable=False)
-    time = Column(String, nullable=True) # E.g., "10:45 AM"
+    time = Column(String, nullable=True)
     unread = Column(Boolean, default=True)
     sentiment = Column(String, default="neutral")
     ai_suggestion_confidence = Column(Float, nullable=True)

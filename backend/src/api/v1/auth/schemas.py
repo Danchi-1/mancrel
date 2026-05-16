@@ -31,3 +31,9 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class WhatsAppConnectRequest(BaseModel):
+    phone_number_id: str
+    access_token: str
+    business_account_id: str
+

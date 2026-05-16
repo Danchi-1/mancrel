@@ -3,23 +3,11 @@ api/v1/messaging/controllers.py
 ================================
 Business-logic handlers for the messaging endpoints.
 
-Controllers sit between routes (HTTP) and the pipeline (AI).
-They are responsible for:
-  - Calling the pipeline functions
-  - Translating pipeline output into response schemas
-  - Converting domain errors into meaningful HTTP exceptions
-
-Why keep controllers separate from routes?
-  Routes handle HTTP concerns (request parsing, status codes, middleware).
-  Controllers handle business concerns (what to do with the data).
-  This means you can unit-test controllers without spinning up an HTTP server.
-
-Error mapping
--------------
-  FileNotFoundError  → 503  Classifier not ready (model not trained yet)
-  EnvironmentError   → 503  Missing API key — configuration problem, not a client error
-  RuntimeError       → 503  OpenRouter model offline or quota exceeded
-  Exception          → 500  Unexpected — logged and re-raised as a generic server error
+Handles:
+  - Inbound webhook from Meta Cloud API
+  - AI classification + reply generation with conversation history
+  - Sending replies back via Meta Graph API
+  - Persisting messages to DB
 """
 
 from __future__ import annotations
@@ -27,12 +15,15 @@ from __future__ import annotations
 import logging
 from typing import Any
 import os
+from datetime import datetime
 
+import httpx
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from db.models import Message
+from sqlalchemy.future import select
 
-from .pipeline import classify, generate_reply
+from db.models import Message, User
+from .pipeline import generate_reply
 from .schemas import (
     ClassifyRequest,
     ClassifyResponse,
@@ -43,48 +34,24 @@ from .schemas import (
 
 logger = logging.getLogger(__name__)
 
+META_GRAPH_VERSION = "v19.0"
+META_API_BASE = f"https://graph.facebook.com/{META_GRAPH_VERSION}"
+
 
 # ---------------------------------------------------------------------------
 # /classify
 # ---------------------------------------------------------------------------
 
 async def handle_classify(request: ClassifyRequest) -> ClassifyResponse:
-    """
-    Run the SetFit classifier on a single message and return its intent label.
-
-    This is a synchronous CPU-bound call wrapped in an async function.
-    FastAPI runs it on the default thread pool executor so it won't block
-    the event loop — acceptable at low concurrency on a single-worker server.
-    If you scale to many simultaneous requests, move to run_in_executor()
-    or a dedicated worker.
-    """
     try:
-        label = classify(request.message)
+        label = _safe_classify(request.message)
         return ClassifyResponse(message=request.message, label=str(label))
-
     except FileNotFoundError as exc:
-        # The SetFit model hasn't been trained + saved yet.
-        # This is a server-side configuration issue, not a bad request.
         logger.error("[classify] Classifier not found: %s", exc)
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "The intent classifier is not ready. "
-                "Run: python -m ml.training.train --train"
-            ),
-        ) from exc
-
+        raise HTTPException(status_code=503, detail="Classifier not ready.") from exc
     except ImportError as exc:
-        # setfit / sentence-transformers not installed in this environment.
         logger.error("[classify] ML libraries not installed: %s", exc)
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "ML dependencies are not installed. "
-                "Run: pip install -r requirements.txt"
-            ),
-        ) from exc
-
+        raise HTTPException(status_code=503, detail="ML dependencies not installed.") from exc
     except Exception as exc:
         logger.exception("[classify] Unexpected error")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -95,137 +62,158 @@ async def handle_classify(request: ClassifyRequest) -> ClassifyResponse:
 # ---------------------------------------------------------------------------
 
 async def handle_reply(request: ReplyRequest) -> ReplyResponse:
-    """
-    Classify an incoming message then generate an AI reply via OpenRouter.
-
-    Two pipeline calls happen in sequence:
-      1. classify(message)      — local SetFit model, ~50ms, CPU only
-      2. generate_reply(...)    — network call to OpenRouter, ~1–3s
-
-    The catalogue_items are forwarded as plain dicts because pipeline.py
-    works with raw dicts (it predates the Pydantic model).  We convert here
-    with .model_dump() so the pipeline never needs to know about Pydantic.
-
-    Note on business_id: the field is accepted but not yet used.
-    In the next milestone it will trigger a DB lookup:
-        items = await fetch_catalogue(business_id)
-    For now, the caller supplies items directly in the request body.
-    """
     try:
-        # Step 1 — classify (may raise FileNotFoundError / ImportError)
         label = _safe_classify(request.message)
-
-        # Step 2 — convert Pydantic CatalogueItem objects → plain dicts
         catalogue_dicts: list[dict[str, Any]] | None = None
         if request.catalogue_items:
-            catalogue_dicts = [
-                item.model_dump(exclude_none=True)
-                for item in request.catalogue_items
-            ]
+            catalogue_dicts = [item.model_dump(exclude_none=True) for item in request.catalogue_items]
 
-        # Step 3 — generate reply (network call to OpenRouter)
         result = generate_reply(
             message=request.message,
             classification=label,
             catalogue_items=catalogue_dicts,
             conversation_history=request.conversation_history,
         )
-
         return ReplyResponse(**result)
 
     except HTTPException:
-        raise  # already formatted by _safe_classify
-
+        raise
     except EnvironmentError as exc:
-        # OPENROUTER_API_KEY not set — server misconfiguration
-        logger.error("[reply] Missing env var: %s", exc)
-        raise HTTPException(
-            status_code=503,
-            detail="OpenRouter API key is not configured on the server.",
-        ) from exc
-
+        raise HTTPException(status_code=503, detail="OpenRouter API key not configured.") from exc
     except RuntimeError as exc:
-        # Model offline or quota exceeded on OpenRouter
-        logger.error("[reply] OpenRouter runtime error: %s", exc)
         raise HTTPException(status_code=503, detail=str(exc)) from exc
-
     except Exception as exc:
         logger.exception("[reply] Unexpected error")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-# webhook  (Twilio inbound WhatsApp)
-async def handle_twilio_webhook(
+# ---------------------------------------------------------------------------
+# Meta Cloud API webhook
+# ---------------------------------------------------------------------------
+
+async def handle_meta_webhook(
     db: AsyncSession,
-    from_number: str,
-    body: str,
+    sender_phone: str,
+    sender_name: str,
+    message_text: str,
+    wa_message_id: str,
+    user: User,
 ) -> WebhookResponse:
     """
-    Process an inbound Twilio WhatsApp message.
+    Full pipeline for an inbound Meta WhatsApp message:
+      1. Deduplicate (Meta re-delivers on failure)
+      2. Fetch conversation history for this sender
+      3. Classify intent
+      4. Generate AI reply with history + catalogue context
+      5. Send reply via Meta Graph API
+      6. Persist both inbound + outbound messages
     """
-    logger.info("[webhook] Inbound from %s: %s", from_number, body[:80])
+    logger.info("[meta_webhook] Inbound from %s (%s): %s", sender_name, sender_phone, message_text[:80])
 
-    try:
-        label = _safe_classify(body)
-        result = generate_reply(message=body, classification=label)
-        
-        reply_text = result["reply"]
-        confidence = result.get("confidence", 1.0)
-        
-        # Save inbound message to DB
-        new_msg = Message(
-            from_name=from_number,
-            company="Unknown (WhatsApp)",
-            subject="WhatsApp Inquiry",
-            full_text=body,
-            preview=body[:50],
-            unread=True,
-            sentiment="neutral", # or extract from label
-            ai_suggestion_confidence=confidence * 100,
-            ai_suggestion_text=reply_text
-        )
-        db.add(new_msg)
-        await db.commit()
-        await db.refresh(new_msg)
+    # 1. Deduplicate by wa_message_id
+    existing = await db.execute(select(Message).where(Message.wa_message_id == wa_message_id))
+    if existing.scalar_one_or_none():
+        logger.info("[meta_webhook] Duplicate message %s, skipping.", wa_message_id)
+        return WebhookResponse(status="duplicate", from_number=sender_phone, label="", reply_queued=False)
 
-        logger.info(
-            "[webhook] Reply drafted: %s…", reply_text[:60]
-        )
-        
-        reply_queued = False
-        
-        # Real Twilio Send
-        from twilio.rest import Client
-        
-        account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
-        auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
-        twilio_number = os.environ.get("TWILIO_PHONE_NUMBER")
-        
-        if account_sid and auth_token and twilio_number:
-            client = Client(account_sid, auth_token)
-            
-            message = client.messages.create(
-                from_=twilio_number,
-                body=reply_text,
-                to=from_number
-            )
-            logger.info(f"Sent WhatsApp message: {message.sid}")
-            reply_queued = True
-        else:
-            logger.warning("Twilio credentials not fully set up. Message not sent.")
+    # 2. Fetch last 10 messages with this sender (conversation history)
+    history_result = await db.execute(
+        select(Message)
+        .where(Message.sender_phone == sender_phone)
+        .order_by(Message.created_at.desc())
+        .limit(10)
+    )
+    history_msgs = list(reversed(history_result.scalars().all()))
+    conversation_history = [
+        {"role": "user" if m.direction == "inbound" else "assistant", "content": m.full_text}
+        for m in history_msgs
+    ]
 
-        return WebhookResponse(
-            status="ok",
-            from_number=from_number,
-            label=label,
-            reply_queued=reply_queued,
-        )
+    # 3. Classify intent (graceful fallback if ML not installed)
+    label = _safe_classify(message_text)
 
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.exception("[webhook] Unhandled error")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    # 4. Generate AI reply
+    result = generate_reply(
+        message=message_text,
+        classification=label,
+        catalogue_items=None,  # TODO: fetch from Meta Catalogue API
+        conversation_history=conversation_history,
+    )
+    reply_text = result["reply"]
+    confidence = result.get("confidence", 1.0)
+
+    # 5. Save inbound message
+    now_str = datetime.utcnow().strftime("%I:%M %p")
+    inbound_msg = Message(
+        sender_phone=sender_phone,
+        direction="inbound",
+        wa_message_id=wa_message_id,
+        from_name=sender_name,
+        company="WhatsApp Customer",
+        subject=f"Message from {sender_name}",
+        full_text=message_text,
+        preview=message_text[:80],
+        time=now_str,
+        unread=True,
+        sentiment=_label_to_sentiment(label),
+        ai_suggestion_confidence=confidence * 100,
+        ai_suggestion_text=reply_text,
+    )
+    db.add(inbound_msg)
+    await db.flush()  # get ID without committing yet
+
+    # 6. Send reply via Meta Graph API
+    reply_queued = False
+    if user.wa_phone_number_id and user.wa_access_token:
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(
+                    f"{META_API_BASE}/{user.wa_phone_number_id}/messages",
+                    headers={
+                        "Authorization": f"Bearer {user.wa_access_token}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "messaging_product": "whatsapp",
+                        "to": sender_phone,
+                        "type": "text",
+                        "text": {"body": reply_text},
+                    },
+                    timeout=10.0,
+                )
+            if resp.status_code == 200:
+                reply_queued = True
+                meta_reply_id = resp.json().get("messages", [{}])[0].get("id", "")
+                logger.info("[meta_webhook] Reply sent: %s", meta_reply_id)
+
+                # Save outbound message
+                outbound_msg = Message(
+                    sender_phone=sender_phone,
+                    direction="outbound",
+                    wa_message_id=meta_reply_id or None,
+                    from_name="Mancrel AI",
+                    full_text=reply_text,
+                    preview=reply_text[:80],
+                    time=now_str,
+                    unread=False,
+                    sentiment="neutral",
+                )
+                db.add(outbound_msg)
+            else:
+                logger.warning("[meta_webhook] Meta API returned %s: %s", resp.status_code, resp.text)
+        except Exception as e:
+            logger.error("[meta_webhook] Failed to send reply: %s", e)
+    else:
+        logger.warning("[meta_webhook] WA credentials not set for user %s", user.id)
+
+    await db.commit()
+
+    return WebhookResponse(
+        status="ok",
+        from_number=sender_phone,
+        label=label,
+        reply_queued=reply_queued,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -233,23 +221,26 @@ async def handle_twilio_webhook(
 # ---------------------------------------------------------------------------
 
 def _safe_classify(message: str) -> str:
-    """
-    Wrap classify() so that both handle_reply and handle_webhook get the
-    same consistent HTTP error if the model isn't ready — without duplicating
-    the try/except block everywhere.
-    """
     try:
+        from .pipeline import classify
         return str(classify(message))
-    except FileNotFoundError as exc:
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "The intent classifier is not ready. "
-                "Run: python -m ml.training.train --train"
-            ),
-        ) from exc
-    except ImportError as exc:
-        raise HTTPException(
-            status_code=503,
-            detail="ML dependencies are not installed. Run: pip install -r requirements.txt",
-        ) from exc
+    except (FileNotFoundError, ImportError):
+        # ML not installed on cloud — fall back to keyword-based classification
+        text = message.lower()
+        if any(w in text for w in ["price", "cost", "how much", "buy", "order", "available"]):
+            return "sales_intent"
+        if any(w in text for w in ["problem", "issue", "broken", "not working", "failed", "error"]):
+            return "support_issue"
+        if any(w in text for w in ["hi", "hello", "good morning", "good evening", "hey"]):
+            return "polite_greeting"
+        return "polite_greeting"
+
+
+def _label_to_sentiment(label: str) -> str:
+    mapping = {
+        "sales_intent": "positive",
+        "polite_greeting": "positive",
+        "support_issue": "concern",
+        "irrelevant_or_inappropriate": "neutral",
+    }
+    return mapping.get(label, "neutral")
