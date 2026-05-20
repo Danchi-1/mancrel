@@ -8,7 +8,9 @@ import { CustomersContent } from "@/components/CustomersContent"
 import DealsKanban from "@/components/DealsKaban"
 import AIInbox from "@/components/AIInbox"
 import WhatsAppConnect from "@/components/WhatsAppConnect"
+import { ProfileContent } from "@/components/ProfileContent"
 import { apiClient } from "@/lib/apiClient"
+import { ChevronLeft, ChevronRight, Menu } from "lucide-react"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -57,22 +59,48 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      {/* Mobile Sidebar Overlay Backdrop */}
+      {sidebarOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-gray-900/50 z-30 transition-opacity" 
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      
       {/* Sidebar */}
-      <Sidebar isOpen={sidebarOpen} activeView={activeView} setActiveView={setActiveView} handleLogout={handleLogout} />
+      <div className={`z-40 ${sidebarOpen ? 'absolute md:relative' : 'absolute md:relative'} h-full`}>
+        <Sidebar isOpen={sidebarOpen} activeView={activeView} setActiveView={setActiveView} handleLogout={handleLogout} />
+      </div>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden w-full relative">
         {/* Top Header */}
-        <header className="bg-white border-b h-16 flex items-center justify-between px-4 sm:px-6 shrink-0">
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-gray-500 hover:text-gray-700">
+        <header className="bg-white border-b h-16 flex items-center justify-between px-4 sm:px-6 shrink-0 z-20">
+          <button 
+            onClick={() => setSidebarOpen(!sidebarOpen)} 
+            className="text-gray-500 hover:text-gray-700 bg-white border border-gray-200 rounded-md p-1.5 shadow-sm hidden md:block"
+            title={sidebarOpen ? "Retract Sidebar" : "Expand Sidebar"}
+          >
+            {sidebarOpen ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+          </button>
+          
+          <button 
+            onClick={() => setSidebarOpen(!sidebarOpen)} 
+            className="text-gray-500 hover:text-gray-700 md:hidden p-2"
+          >
             <Menu className="w-6 h-6" />
           </button>
+          
           <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-gray-700">{user.name}</span>
-            <div className="w-8 h-8 bg-[#4F46E5] text-white rounded-full flex items-center justify-center font-bold">
+            <span className="text-sm font-medium text-gray-700 hidden sm:block">{user.name}</span>
+            <button 
+              onClick={() => setActiveView("profile")}
+              className="w-8 h-8 bg-[#4F46E5] text-white rounded-full flex items-center justify-center font-bold hover:ring-2 hover:ring-indigo-300 transition-all focus:outline-none"
+              title="View Profile"
+            >
               {user.name.charAt(0)}
-            </div>
+            </button>
           </div>
         </header>
         {/* Dynamic Content Area */}
@@ -111,6 +139,7 @@ export default function DashboardPage() {
               {activeView === "deals" && <DealsKanban />}
               {activeView === "escalations" && <EscalationsContent />}
               {activeView === "customers" && <CustomersContent />}
+              {activeView === "profile" && <ProfileContent user={user} />}
             </>
           )}
         </main>
