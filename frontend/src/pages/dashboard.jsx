@@ -10,7 +10,7 @@ import AIInbox from "@/components/AIInbox"
 import WhatsAppConnect from "@/components/WhatsAppConnect"
 import { ProfileContent } from "@/components/ProfileContent"
 import { apiClient } from "@/lib/apiClient"
-import { ChevronLeft, ChevronRight, Menu } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 export default function DashboardPage() {
   const router = useRouter()
