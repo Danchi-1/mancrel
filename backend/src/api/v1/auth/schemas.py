@@ -37,3 +37,5 @@ class WhatsAppConnectRequest(BaseModel):
     access_token: str
     business_account_id: str
 
+class GoogleLoginRequest(BaseModel):
+    credential: str

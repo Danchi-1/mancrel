@@ -7,8 +7,12 @@ import secrets
 from db.session import get_db
 from db.models import User
 from core.security import get_password_hash, verify_password, create_access_token
-from .schemas import UserCreate, UserLogin, Token, UserResponse, WhatsAppConnectRequest
+from .schemas import UserCreate, UserLogin, Token, UserResponse, WhatsAppConnectRequest, GoogleLoginRequest
 from .deps import get_current_user
+
+import os
+from google.oauth2 import id_token
+from google.auth.transport import requests
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -106,3 +110,52 @@ async def get_webhook_info(current_user: User = Depends(get_current_user)):
         "connected": current_user.whatsapp_connected,
     }
 
+
+@router.post("/google", response_model=Token)
+async def google_login(request: GoogleLoginRequest, db: AsyncSession = Depends(get_db)):
+    """Verifies a Google JWT credential and logs the user in (or creates them)."""
+    client_id = os.environ.get("GOOGLE_CLIENT_ID")
+    if not client_id:
+        raise HTTPException(status_code=500, detail="Google authentication is not configured.")
+
+    try:
+        # Verify the token against Google's servers
+        idinfo = id_token.verify_oauth2_token(
+            request.credential, requests.Request(), client_id
+        )
+        email = idinfo.get("email")
+        if not email:
+            raise HTTPException(status_code=400, detail="Google token missing email.")
+            
+        first_name = idinfo.get("given_name", "User")
+        last_name = idinfo.get("family_name", "")
+
+        # Check if user exists
+        stmt = select(User).where(User.email == email)
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+
+        if not user:
+            # Create a new user with Google info
+            user = User(
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                business_name=f"{first_name}'s Business",
+                industry_sector="Other",
+                business_type="Startup",
+                hashed_password=get_password_hash(secrets.token_urlsafe(32)), # Random unguessable password
+                marketing_consent=False,
+                terms_accepted=True, # Implicitly accepted by logging in with Google
+            )
+            db.add(user)
+            await db.commit()
+            await db.refresh(user)
+
+        # Generate standard FastAPI access token
+        access_token = create_access_token(data={"sub": str(user.id)})
+        return {"access_token": access_token, "token_type": "bearer"}
+
+    except ValueError:
+        # Invalid token
+        raise HTTPException(status_code=400, detail="Invalid Google token.")
