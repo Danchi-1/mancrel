@@ -59,7 +59,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="fixed inset-0 flex bg-gray-50 overflow-hidden">
       {/* Mobile Sidebar Overlay Backdrop */}
       {sidebarOpen && (
         <div 

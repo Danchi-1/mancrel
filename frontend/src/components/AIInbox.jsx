@@ -110,9 +110,9 @@ export default function AIInbox({ isMarketingPreview = false, isDashboard = fals
         )}
 
         {/* Inbox Interface */}
-        <div className={`grid lg:grid-cols-5 gap-6 ${isDashboard ? 'h-full flex-1 min-h-0 p-4 md:p-6' : ''}`}>
+        <div className={`grid lg:grid-cols-5 gap-6 w-full ${isDashboard ? 'h-full flex-1 min-h-0 p-4 md:p-6' : ''}`}>
           {/* Message List */}
-          <div className="lg:col-span-2 card overflow-hidden">
+          <div className="lg:col-span-2 card overflow-hidden w-full">
             <div className="p-4 border-b border-neutral-100">
               <div className="relative">
                 <input
@@ -170,7 +170,7 @@ export default function AIInbox({ isMarketingPreview = false, isDashboard = fals
           </div>
 
           {/* Message Detail & AI Suggestion */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className="lg:col-span-3 space-y-6 w-full overflow-hidden">
             {!selectedMessage ? (
               <div className="card p-6 flex items-center justify-center h-64 text-neutral-500">
                 Select a message to view details
