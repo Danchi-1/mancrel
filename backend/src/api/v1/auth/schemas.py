@@ -27,6 +27,9 @@ class UserResponse(BaseModel):
     last_name: str
     email: str
     business_name: Optional[str] = None
+    industry_sector: Optional[str] = None
+    business_type: Optional[str] = None
+    phone: Optional[str] = None
     whatsapp_connected: bool = False
 
     class Config:

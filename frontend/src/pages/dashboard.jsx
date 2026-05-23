@@ -27,6 +27,10 @@ export default function DashboardPage() {
         setUser({
           name: `${userData.first_name} ${userData.last_name}`,
           email: userData.email,
+          business_name: userData.business_name,
+          industry_sector: userData.industry_sector,
+          business_type: userData.business_type,
+          phone: userData.phone,
           whatsapp_connected: userData.whatsapp_connected
         });
         setIsAuthenticated(true);

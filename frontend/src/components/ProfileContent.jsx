@@ -38,6 +38,28 @@ export function ProfileContent({ user }) {
           </div>
           
           <div className="mt-8 pt-8 border-t border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Business Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Business Name</label>
+                <div className="text-gray-900 font-medium">{user?.business_name || "Not provided"}</div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Industry Sector</label>
+                <div className="text-gray-900 font-medium">{user?.industry_sector || "Not provided"}</div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Business Type</label>
+                <div className="text-gray-900 font-medium">{user?.business_type || "Not provided"}</div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Phone Number</label>
+                <div className="text-gray-900 font-medium">{user?.phone || "Not provided"}</div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-8 pt-8 border-t border-gray-100">
             <p className="text-sm text-gray-500">
               Note: Profile editing is currently disabled. Please contact support if you need to update your account details.
             </p>
