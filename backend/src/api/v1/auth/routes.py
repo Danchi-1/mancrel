@@ -69,6 +69,11 @@ async def update_users_me(
     current_user: User = Depends(get_current_user)
 ):
     update_dict = update_data.model_dump(exclude_unset=True)
+    
+    # Security: Do not allow phone number changes if it's already set to prevent WhatsApp connection breakage
+    if current_user.phone and "phone" in update_dict:
+        update_dict.pop("phone")
+
     for key, value in update_dict.items():
         setattr(current_user, key, value)
     

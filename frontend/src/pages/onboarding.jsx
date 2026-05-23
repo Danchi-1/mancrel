@@ -13,12 +13,16 @@ export default function OnboardingPage() {
   })
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState(null)
+  const [hasExistingPhone, setHasExistingPhone] = useState(false)
 
   useEffect(() => {
     // Try to pre-fill from auth/me
     async function fetchUser() {
       try {
         const user = await apiClient.get('/auth/me')
+        if (user.phone) {
+          setHasExistingPhone(true)
+        }
         setFormData(prev => ({
           ...prev,
           business_name: user.business_name?.endsWith("'s Business") ? '' : (user.business_name || ''),
@@ -119,9 +123,13 @@ export default function OnboardingPage() {
                   required
                   value={formData.phone}
                   onChange={handleChange}
-                  className="input-field"
+                  disabled={hasExistingPhone}
+                  className={`input-field ${hasExistingPhone ? 'bg-gray-100 cursor-not-allowed text-gray-500' : ''}`}
                   placeholder="+1 (555) 000-0000"
                 />
+                {hasExistingPhone && (
+                  <p className="mt-1 text-xs text-gray-500">Phone number cannot be changed to protect your WhatsApp connection.</p>
+                )}
               </div>
             </div>
 
