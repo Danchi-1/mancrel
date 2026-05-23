@@ -7,7 +7,7 @@ import secrets
 from db.session import get_db
 from db.models import User
 from core.security import get_password_hash, verify_password, create_access_token
-from .schemas import UserCreate, UserLogin, Token, UserResponse, WhatsAppConnectRequest, GoogleLoginRequest, UserUpdate
+from .schemas import UserCreate, UserLogin, Token, UserResponse, WhatsAppConnectRequest, GoogleLoginRequest, UserUpdate, TwilioConnectRequest
 from .deps import get_current_user
 
 import os
@@ -129,6 +129,24 @@ async def get_webhook_info(current_user: User = Depends(get_current_user)):
         "connected": current_user.whatsapp_connected,
     }
 
+
+@router.patch("/twilio/connect", response_model=UserResponse)
+async def connect_twilio(
+    credentials: TwilioConnectRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Store Twilio Sandbox credentials for the BYOT architecture.
+    """
+    current_user.twilio_account_sid = credentials.account_sid
+    current_user.twilio_auth_token = credentials.auth_token
+    current_user.twilio_phone_number = credentials.phone_number
+    current_user.whatsapp_connected = True
+    
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
 
 @router.post("/google", response_model=Token)
 async def google_login(request: GoogleLoginRequest, db: AsyncSession = Depends(get_db)):

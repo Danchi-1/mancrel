@@ -40,6 +40,11 @@ class WhatsAppConnectRequest(BaseModel):
     access_token: str
     business_account_id: str
 
+class TwilioConnectRequest(BaseModel):
+    account_sid: str
+    auth_token: str
+    phone_number: str
+
 class GoogleLoginRequest(BaseModel):
     credential: str
 
