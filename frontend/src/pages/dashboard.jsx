@@ -24,6 +24,13 @@ export default function DashboardPage() {
     async function fetchUser() {
       try {
         const userData = await apiClient.get('/auth/me');
+        
+        // Redirect to onboarding if they haven't completed their profile
+        if (!userData.phone) {
+          router.push('/onboarding');
+          return;
+        }
+
         setUser({
           name: `${userData.first_name} ${userData.last_name}`,
           email: userData.email,

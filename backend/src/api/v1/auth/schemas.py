@@ -42,3 +42,9 @@ class WhatsAppConnectRequest(BaseModel):
 
 class GoogleLoginRequest(BaseModel):
     credential: str
+
+class UserUpdate(BaseModel):
+    business_name: Optional[str] = None
+    industry_sector: Optional[str] = None
+    business_type: Optional[str] = None
+    phone: Optional[str] = None

@@ -59,10 +59,13 @@ export function ProfileContent({ user }) {
             </div>
           </div>
           
-          <div className="mt-8 pt-8 border-t border-gray-100">
+          <div className="mt-8 pt-8 border-t border-gray-100 flex items-center justify-between">
             <p className="text-sm text-gray-500">
-              Note: Profile editing is currently disabled. Please contact support if you need to update your account details.
+              Need to update your details?
             </p>
+            <a href="/onboarding" className="btn-secondary text-sm px-4 py-2">
+              Edit Profile
+            </a>
           </div>
         </div>
       </div>

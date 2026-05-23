@@ -7,7 +7,7 @@ import secrets
 from db.session import get_db
 from db.models import User
 from core.security import get_password_hash, verify_password, create_access_token
-from .schemas import UserCreate, UserLogin, Token, UserResponse, WhatsAppConnectRequest, GoogleLoginRequest
+from .schemas import UserCreate, UserLogin, Token, UserResponse, WhatsAppConnectRequest, GoogleLoginRequest, UserUpdate
 from .deps import get_current_user
 
 import os
@@ -60,6 +60,20 @@ async def signin(user_in: UserLogin, db: AsyncSession = Depends(get_db)):
 
 @router.get("/me", response_model=UserResponse)
 async def read_users_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+@router.patch("/me", response_model=UserResponse)
+async def update_users_me(
+    update_data: UserUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    update_dict = update_data.model_dump(exclude_unset=True)
+    for key, value in update_dict.items():
+        setattr(current_user, key, value)
+    
+    await db.commit()
+    await db.refresh(current_user)
     return current_user
 
 @router.patch("/whatsapp/connect", response_model=UserResponse)
