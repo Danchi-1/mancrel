@@ -161,23 +161,6 @@ async def on_startup() -> None:
     else:
         logger.info("[startup] All required env vars present ✓")
 
-    # Auto-run Alembic migrations
-    try:
-        import subprocess
-        logger.info("[startup] Running database migrations...")
-        result = subprocess.run(
-            [sys.executable, "-m", "alembic", "upgrade", "head"],
-            cwd=str(Path(__file__).parent.parent),
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        logger.info("[startup] Migrations complete: %s", result.stdout)
-    except subprocess.CalledProcessError as e:
-        logger.error("[startup] Migration failed: %s", e.stderr)
-    except Exception as e:
-        logger.error("[startup] Failed to run migrations: %s", e)
-
     logger.info(
         "[startup] Mancrel API v%s started. Docs: http://localhost:8000/docs",
         app.version,
