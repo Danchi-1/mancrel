@@ -36,6 +36,11 @@ class User(Base):
     wa_access_token = Column(String, nullable=True)       # Meta permanent access token
     wa_business_account_id = Column(String, nullable=True)  # WABA ID
     wa_webhook_verify_token = Column(String, nullable=True)  # random secret for webhook verification
+
+    # Twilio Sandbox credentials
+    twilio_account_sid = Column(String, nullable=True)
+    twilio_auth_token = Column(String, nullable=True)
+    twilio_phone_number = Column(String, nullable=True)
     
     created_at = Column(DateTime, default=datetime.utcnow)
 
