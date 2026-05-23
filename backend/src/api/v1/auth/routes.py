@@ -116,7 +116,7 @@ async def google_login(request: GoogleLoginRequest, db: AsyncSession = Depends(g
     """Verifies a Google JWT credential and logs the user in (or creates them)."""
     client_id = os.environ.get("GOOGLE_CLIENT_ID")
     if not client_id:
-        raise HTTPException(status_code=500, detail="Google authentication is not configured.")
+        raise HTTPException(status_code=400, detail="Google authentication is not configured on the server.")
 
     try:
         # Verify the token against Google's servers
@@ -156,6 +156,8 @@ async def google_login(request: GoogleLoginRequest, db: AsyncSession = Depends(g
         access_token = create_access_token(data={"sub": str(user.id)})
         return {"access_token": access_token, "token_type": "bearer"}
 
-    except ValueError:
-        # Invalid token
-        raise HTTPException(status_code=400, detail="Invalid Google token.")
+    except Exception as e:
+        # Invalid token or network error
+        import logging
+        logging.error(f"Google auth error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Google authentication failed: {str(e)}")
