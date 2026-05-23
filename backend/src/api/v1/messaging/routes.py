@@ -38,8 +38,9 @@ router = APIRouter(prefix="/messaging", tags=["Messaging"])
 # Twilio WhatsApp webhook (POST) — ACTIVE
 # ---------------------------------------------------------------------------
 
-@router.post("/twilio/webhook", response_model=WebhookResponse, summary="Twilio inbound WhatsApp webhook")
+@router.post("/twilio/webhook/{user_id}", response_model=WebhookResponse, summary="Twilio inbound WhatsApp webhook")
 async def twilio_webhook(
+    user_id: str,
     db: AsyncSession = Depends(get_db),
     # Twilio sends form data (application/x-www-form-urlencoded)
     From: str = Form(..., description="Sender WhatsApp number e.g. whatsapp:+2348012345678"),
@@ -58,8 +59,16 @@ async def twilio_webhook(
     sender_phone = From.replace("whatsapp:", "").strip()
     sender_name = ProfileName or sender_phone
 
+    # Fetch the user
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        logger.warning(f"[twilio_webhook] Unknown user_id {user_id}")
+        return WebhookResponse(status="unknown_user", from_number=sender_phone, label="", reply_queued=False)
+
     return await handle_twilio_webhook(
         db=db,
+        user=user,
         sender_phone=sender_phone,
         sender_name=sender_name,
         message_text=Body,

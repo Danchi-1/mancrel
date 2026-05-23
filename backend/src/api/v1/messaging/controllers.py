@@ -256,6 +256,7 @@ def _label_to_sentiment(label: str) -> str:
 
 async def handle_twilio_webhook(
     db: AsyncSession,
+    user: User,
     sender_phone: str,
     sender_name: str,
     message_text: str,
@@ -321,9 +322,9 @@ async def handle_twilio_webhook(
 
     # 5. Send reply via Twilio
     reply_queued = False
-    twilio_sid = os.environ.get("TWILIO_ACCOUNT_SID")
-    twilio_token = os.environ.get("TWILIO_AUTH_TOKEN")
-    twilio_number = os.environ.get("TWILIO_PHONE_NUMBER")  # e.g. "whatsapp:+14155238886"
+    twilio_sid = user.twilio_account_sid or os.environ.get("TWILIO_ACCOUNT_SID")
+    twilio_token = user.twilio_auth_token or os.environ.get("TWILIO_AUTH_TOKEN")
+    twilio_number = user.twilio_phone_number or os.environ.get("TWILIO_PHONE_NUMBER")
 
     if twilio_sid and twilio_token and twilio_number:
         try:
