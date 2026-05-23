@@ -6,6 +6,7 @@ import { Logo } from '@/components/Logo'
 import { GoogleLogin } from '@react-oauth/google'
 
 export default function SignUpPage() {
+  const router = useRouter()
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
