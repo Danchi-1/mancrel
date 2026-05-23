@@ -153,7 +153,7 @@ async def google_login(request: GoogleLoginRequest, db: AsyncSession = Depends(g
             await db.refresh(user)
 
         # Generate standard FastAPI access token
-        access_token = create_access_token(data={"sub": str(user.id)})
+        access_token = create_access_token(subject=str(user.id))
         return {"access_token": access_token, "token_type": "bearer"}
 
     except Exception as e:
