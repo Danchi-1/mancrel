@@ -138,7 +138,29 @@ async def connect_twilio(
 ):
     """
     Store Twilio Sandbox credentials for the BYOT architecture.
+    Validates the credentials against the Twilio API before saving.
     """
+    if not credentials.phone_number.startswith("whatsapp:"):
+        raise HTTPException(
+            status_code=400,
+            detail="Phone number must start with 'whatsapp:'"
+        )
+
+    # Validate credentials against Twilio API
+    test_url = f"https://api.twilio.com/2010-04-01/Accounts/{credentials.account_sid}.json"
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            test_url,
+            auth=(credentials.account_sid, credentials.auth_token),
+            timeout=10.0,
+        )
+    
+    if resp.status_code != 200:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid Twilio Account SID or Auth Token."
+        )
+
     current_user.twilio_account_sid = credentials.account_sid
     current_user.twilio_auth_token = credentials.auth_token
     current_user.twilio_phone_number = credentials.phone_number
