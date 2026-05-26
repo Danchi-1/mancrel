@@ -42,6 +42,9 @@ class User(Base):
     twilio_auth_token = Column(String, nullable=True)
     twilio_phone_number = Column(String, nullable=True)
     
+    # Security
+    phone_verification_code = Column(String, nullable=True)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Customer(Base):

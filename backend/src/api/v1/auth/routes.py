@@ -7,10 +7,11 @@ import secrets
 from db.session import get_db
 from db.models import User
 from core.security import get_password_hash, verify_password, create_access_token
-from .schemas import UserCreate, UserLogin, Token, UserResponse, WhatsAppConnectRequest, GoogleLoginRequest, UserUpdate, TwilioConnectRequest
+from .schemas import UserCreate, UserLogin, Token, UserResponse, WhatsAppConnectRequest, GoogleLoginRequest, UserUpdate, TwilioConnectRequest, TwilioVerifyOtpRequest
 from .deps import get_current_user
 
 import os
+import random
 from google.oauth2 import id_token
 from google.auth.transport import requests
 
@@ -130,41 +131,84 @@ async def get_webhook_info(current_user: User = Depends(get_current_user)):
     }
 
 
-@router.patch("/twilio/connect", response_model=UserResponse)
-async def connect_twilio(
+@router.post("/twilio/send-otp")
+async def send_twilio_otp(
     credentials: TwilioConnectRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    Store Twilio Sandbox credentials for the BYOT architecture.
-    Validates the credentials against the Twilio API before saving.
+    Sends a 6-digit OTP to the user's registered phone number via WhatsApp
+    using the provided Twilio credentials. Proves ownership and Sandbox opt-in.
     """
-    if not credentials.phone_number.startswith("whatsapp:"):
-        raise HTTPException(
-            status_code=400,
-            detail="Phone number must start with 'whatsapp:'"
-        )
+    if not current_user.phone:
+        raise HTTPException(status_code=400, detail="You must have a registered phone number to verify Twilio.")
 
-    # Validate credentials against Twilio API
-    test_url = f"https://api.twilio.com/2010-04-01/Accounts/{credentials.account_sid}.json"
+    phone_number = credentials.phone_number
+    if not phone_number.startswith("whatsapp:"):
+        phone_number = f"whatsapp:{phone_number}"
+
+    # Generate 6-digit OTP
+    otp = str(random.randint(100000, 999999))
+    
+    # Format target number
+    target_phone = current_user.phone
+    if not target_phone.startswith("whatsapp:"):
+        target_phone = f"whatsapp:{target_phone}"
+    if not target_phone.startswith("whatsapp:+"):
+        # Very basic fallback if they didn't include a plus, though signup should enforce it
+        target_phone = target_phone.replace("whatsapp:", "whatsapp:+")
+
+    # Send message via Twilio API
+    url = f"https://api.twilio.com/2010-04-01/Accounts/{credentials.account_sid}/Messages.json"
     async with httpx.AsyncClient() as client:
-        resp = await client.get(
-            test_url,
+        resp = await client.post(
+            url,
             auth=(credentials.account_sid, credentials.auth_token),
+            data={
+                "From": phone_number,
+                "To": target_phone,
+                "Body": f"Your Mancrel verification code is: {otp}"
+            },
             timeout=10.0,
         )
     
-    if resp.status_code != 200:
+    if resp.status_code != 201:
+        error_msg = resp.json().get('message', 'Unknown error')
+        if "outside the 24-hour window" in error_msg or "opt in" in error_msg.lower():
+            error_msg = "You must send a 'join' message to the Sandbox number from your personal WhatsApp first!"
         raise HTTPException(
             status_code=400,
-            detail="Invalid Twilio Account SID or Auth Token."
+            detail=f"Twilio rejected the connection. Did you use the right keys? Error: {error_msg}"
         )
 
-    current_user.twilio_account_sid = credentials.account_sid
-    current_user.twilio_auth_token = credentials.auth_token
-    current_user.twilio_phone_number = credentials.phone_number
+    # Save OTP to DB temporarily
+    current_user.phone_verification_code = otp
+    await db.commit()
+    return {"message": "OTP sent successfully"}
+
+@router.post("/twilio/verify-otp", response_model=UserResponse)
+async def verify_twilio_otp(
+    payload: TwilioVerifyOtpRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Verifies the 6-digit OTP and finalizes saving the Twilio credentials.
+    """
+    if not current_user.phone_verification_code or payload.code != current_user.phone_verification_code:
+        raise HTTPException(status_code=400, detail="Invalid verification code.")
+
+    phone_number = payload.phone_number
+    if not phone_number.startswith("whatsapp:"):
+        phone_number = f"whatsapp:{phone_number}"
+
+    # Valid! Save the credentials.
+    current_user.twilio_account_sid = payload.account_sid
+    current_user.twilio_auth_token = payload.auth_token
+    current_user.twilio_phone_number = phone_number
     current_user.whatsapp_connected = True
+    current_user.phone_verification_code = None # Clear it
     
     await db.commit()
     await db.refresh(current_user)

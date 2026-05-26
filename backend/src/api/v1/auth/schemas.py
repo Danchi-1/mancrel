@@ -45,6 +45,12 @@ class TwilioConnectRequest(BaseModel):
     auth_token: str
     phone_number: str
 
+class TwilioVerifyOtpRequest(BaseModel):
+    code: str
+    account_sid: str
+    auth_token: str
+    phone_number: str
+
 class GoogleLoginRequest(BaseModel):
     credential: str
 
