@@ -144,7 +144,7 @@ async def send_twilio_otp(
     if not current_user.phone:
         raise HTTPException(status_code=400, detail="You must have a registered phone number to verify Twilio.")
 
-    phone_number = credentials.phone_number
+    phone_number = credentials.phone_number.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
     if not phone_number.startswith("whatsapp:"):
         phone_number = f"whatsapp:{phone_number}"
 
@@ -152,7 +152,7 @@ async def send_twilio_otp(
     otp = str(random.randint(100000, 999999))
     
     # Format target number
-    target_phone = current_user.phone
+    target_phone = current_user.phone.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
     if not target_phone.startswith("whatsapp:"):
         target_phone = f"whatsapp:{target_phone}"
     if not target_phone.startswith("whatsapp:+"):
@@ -199,7 +199,7 @@ async def verify_twilio_otp(
     if not current_user.phone_verification_code or payload.code != current_user.phone_verification_code:
         raise HTTPException(status_code=400, detail="Invalid verification code.")
 
-    phone_number = payload.phone_number
+    phone_number = payload.phone_number.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
     if not phone_number.startswith("whatsapp:"):
         phone_number = f"whatsapp:{phone_number}"
 
@@ -209,6 +209,25 @@ async def verify_twilio_otp(
     current_user.twilio_phone_number = phone_number
     current_user.whatsapp_connected = True
     current_user.phone_verification_code = None # Clear it
+    
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
+
+@router.post("/twilio/disconnect", response_model=UserResponse)
+async def disconnect_twilio(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Disconnects the user's Twilio WhatsApp integration.
+    """
+    current_user.twilio_account_sid = None
+    current_user.twilio_auth_token = None
+    current_user.twilio_phone_number = None
+    current_user.wa_webhook_verify_token = None
+    current_user.phone_verification_code = None
+    current_user.whatsapp_connected = False
     
     await db.commit()
     await db.refresh(current_user)
