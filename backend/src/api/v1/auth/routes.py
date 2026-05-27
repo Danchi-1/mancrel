@@ -141,6 +141,11 @@ async def send_twilio_otp(
     Sends a 6-digit OTP to the user's registered phone number via WhatsApp
     using the provided Twilio credentials. Proves ownership and Sandbox opt-in.
     """
+    if credentials.personal_phone:
+        current_user.phone = credentials.personal_phone
+        await db.commit()
+        await db.refresh(current_user)
+
     if not current_user.phone:
         raise HTTPException(status_code=400, detail="You must have a registered phone number to verify Twilio.")
 

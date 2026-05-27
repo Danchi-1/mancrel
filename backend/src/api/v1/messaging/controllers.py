@@ -22,7 +22,7 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from db.models import Message, User
+from db.models import Message, User, CatalogueItem
 from .pipeline import generate_reply
 from .schemas import (
     ClassifyRequest,
@@ -123,7 +123,7 @@ async def handle_meta_webhook(
     # 2. Fetch last 10 messages with this sender (conversation history)
     history_result = await db.execute(
         select(Message)
-        .where(Message.sender_phone == sender_phone)
+        .where(Message.sender_phone == sender_phone, Message.user_id == user.id)
         .order_by(Message.created_at.desc())
         .limit(10)
     )
@@ -135,12 +135,26 @@ async def handle_meta_webhook(
 
     # 3. Classify intent (graceful fallback if ML not installed)
     label = _safe_classify(message_text)
+    
+    # 3b. Fetch catalogue
+    cat_res = await db.execute(select(CatalogueItem).where(CatalogueItem.user_id == user.id))
+    db_items = cat_res.scalars().all()
+    items = [
+        {
+            "name": i.name,
+            "price": i.price,
+            "available": i.available,
+            "description": i.description,
+            "sku": i.sku
+        }
+        for i in db_items
+    ]
 
     # 4. Generate AI reply
     result = generate_reply(
         message=message_text,
         classification=label,
-        catalogue_items=None,  # TODO: fetch from Meta Catalogue API
+        catalogue_items=items,
         conversation_history=conversation_history,
     )
     reply_text = result["reply"]
@@ -149,6 +163,7 @@ async def handle_meta_webhook(
     # 5. Save inbound message
     now_str = datetime.utcnow().strftime("%I:%M %p")
     inbound_msg = Message(
+        user_id=user.id,
         sender_phone=sender_phone,
         direction="inbound",
         wa_message_id=wa_message_id,
@@ -192,6 +207,7 @@ async def handle_meta_webhook(
 
                 # Save outbound message
                 outbound_msg = Message(
+                    user_id=user.id,
                     sender_phone=sender_phone,
                     direction="outbound",
                     wa_message_id=meta_reply_id or None,
@@ -279,7 +295,7 @@ async def handle_twilio_webhook(
     # 2. Fetch conversation history (last 10 messages with this sender)
     history_result = await db.execute(
         select(Message)
-        .where(Message.sender_phone == sender_phone)
+        .where(Message.sender_phone == sender_phone, Message.user_id == user.id)
         .order_by(Message.created_at.desc())
         .limit(10)
     )
@@ -291,10 +307,25 @@ async def handle_twilio_webhook(
 
     # 3. Classify + generate AI reply
     label = _safe_classify(message_text)
+    
+    # Fetch catalogue
+    cat_res = await db.execute(select(CatalogueItem).where(CatalogueItem.user_id == user.id))
+    db_items = cat_res.scalars().all()
+    items = [
+        {
+            "name": i.name,
+            "price": i.price,
+            "available": i.available,
+            "description": i.description,
+            "sku": i.sku
+        }
+        for i in db_items
+    ]
+    
     result = generate_reply(
         message=message_text,
         classification=label,
-        catalogue_items=None,
+        catalogue_items=items,
         conversation_history=conversation_history,
     )
     reply_text = result["reply"]
@@ -303,6 +334,7 @@ async def handle_twilio_webhook(
     # 4. Save inbound message
     now_str = datetime.utcnow().strftime("%I:%M %p")
     inbound_msg = Message(
+        user_id=user.id,
         sender_phone=sender_phone,
         direction="inbound",
         wa_message_id=message_sid,
@@ -340,6 +372,7 @@ async def handle_twilio_webhook(
 
             # Save outbound reply
             outbound_msg = Message(
+                user_id=user.id,
                 sender_phone=sender_phone,
                 direction="outbound",
                 wa_message_id=sent.sid,

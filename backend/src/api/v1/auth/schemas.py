@@ -44,6 +44,7 @@ class TwilioConnectRequest(BaseModel):
     account_sid: str
     auth_token: str
     phone_number: str
+    personal_phone: Optional[str] = None
 
 class TwilioVerifyOtpRequest(BaseModel):
     code: str
