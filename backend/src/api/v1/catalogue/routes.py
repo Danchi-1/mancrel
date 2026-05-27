@@ -6,7 +6,7 @@ from typing import List
 
 from db.session import get_db
 from db.models import User, CatalogueItem
-from api.dependencies import get_current_user
+from api.v1.auth.deps import get_current_user
 from .schemas import CatalogueItemCreate, CatalogueItemUpdate, CatalogueItemResponse
 
 router = APIRouter(prefix="/catalogue", tags=["Catalogue"])
