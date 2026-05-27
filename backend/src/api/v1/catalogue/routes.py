@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from sqlalchemy import func
 from typing import List
 
-from db.database import get_db
+from db.session import get_db
 from db.models import User, CatalogueItem
 from api.dependencies import get_current_user
 from .schemas import CatalogueItemCreate, CatalogueItemUpdate, CatalogueItemResponse

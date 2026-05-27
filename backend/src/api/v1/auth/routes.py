@@ -12,6 +12,7 @@ from .deps import get_current_user
 
 import os
 import random
+from datetime import datetime, timedelta
 from google.oauth2 import id_token
 from google.auth.transport import requests
 
@@ -187,8 +188,9 @@ async def send_twilio_otp(
             detail=f"Twilio rejected the connection. Did you use the right keys? Error: {error_msg}"
         )
 
-    # Save OTP to DB temporarily
+    # Save OTP to DB temporarily (2 minute expiry)
     current_user.phone_verification_code = otp
+    current_user.phone_verification_expires_at = datetime.utcnow() + timedelta(minutes=2)
     await db.commit()
     return {"message": "OTP sent successfully"}
 
@@ -204,6 +206,9 @@ async def verify_twilio_otp(
     if not current_user.phone_verification_code or payload.code != current_user.phone_verification_code:
         raise HTTPException(status_code=400, detail="Invalid verification code.")
 
+    if current_user.phone_verification_expires_at and datetime.utcnow() > current_user.phone_verification_expires_at:
+        raise HTTPException(status_code=400, detail="Verification code has expired. Please request a new one.")
+
     phone_number = payload.phone_number.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
     if not phone_number.startswith("whatsapp:"):
         phone_number = f"whatsapp:{phone_number}"
@@ -214,6 +219,7 @@ async def verify_twilio_otp(
     current_user.twilio_phone_number = phone_number
     current_user.whatsapp_connected = True
     current_user.phone_verification_code = None # Clear it
+    current_user.phone_verification_expires_at = None
     
     await db.commit()
     await db.refresh(current_user)
@@ -232,6 +238,7 @@ async def disconnect_twilio(
     current_user.twilio_phone_number = None
     current_user.wa_webhook_verify_token = None
     current_user.phone_verification_code = None
+    current_user.phone_verification_expires_at = None
     current_user.whatsapp_connected = False
     
     await db.commit()

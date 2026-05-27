@@ -44,6 +44,7 @@ class User(Base):
     
     # Security
     phone_verification_code = Column(String, nullable=True)
+    phone_verification_expires_at = Column(DateTime, nullable=True)
     
     created_at = Column(DateTime, default=datetime.utcnow)
 
