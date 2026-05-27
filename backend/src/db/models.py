@@ -82,6 +82,8 @@ class Message(Base):
     __tablename__ = "messages"
     
     id = Column(String, primary_key=True, default=generate_uuid)
+    # Business scope
+    user_id = Column(String, ForeignKey("users.id"), nullable=True, index=True)
     # Conversation tracking
     sender_phone = Column(String, nullable=True, index=True)  # e.g. "+2348012345678"
     direction = Column(String, default="inbound")              # "inbound" | "outbound"
@@ -98,3 +100,17 @@ class Message(Base):
     ai_suggestion_confidence = Column(Float, nullable=True)
     ai_suggestion_text = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class CatalogueItem(Base):
+    __tablename__ = "catalogue_items"
+    
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    price = Column(String, nullable=True)
+    available = Column(Boolean, default=True)
+    description = Column(Text, nullable=True)
+    sku = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User", backref="catalogue_items")

@@ -63,6 +63,7 @@ from api.v1.auth.routes import router as auth_router
 from api.v1.deals.routes import router as deals_router
 from api.v1.customers.routes import router as customers_router
 from api.v1.escalations.routes import router as escalations_router
+from api.v1.catalogue.routes import router as catalogue_router
 
 # ── Logging setup ─────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -114,6 +115,7 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(deals_router, prefix="/api/v1")
 app.include_router(customers_router, prefix="/api/v1")
 app.include_router(escalations_router, prefix="/api/v1")
+app.include_router(catalogue_router, prefix="/api/v1")
 
 # Future routers will be added here:
 # from api.v1.auth.routes import router as auth_router
