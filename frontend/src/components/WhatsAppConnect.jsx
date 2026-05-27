@@ -11,7 +11,8 @@ export default function WhatsAppConnect({ onConnect }) {
   const [formData, setFormData] = useState({
     account_sid: "",
     auth_token: "",
-    phone_number: ""
+    phone_number: "",
+    personal_phone: ""
   })
   const [otpCode, setOtpCode] = useState("")
   const [webhookUrl, setWebhookUrl] = useState("")
@@ -23,6 +24,9 @@ export default function WhatsAppConnect({ onConnect }) {
       try {
         const userData = await apiClient.get('/auth/me')
         setUser(userData)
+        if (userData.phone) {
+          setFormData(prev => ({ ...prev, personal_phone: userData.phone }))
+        }
       } catch (e) {
         console.error("Failed to fetch user")
       }
@@ -36,7 +40,7 @@ export default function WhatsAppConnect({ onConnect }) {
   }
 
   const handleSendOtp = async () => {
-    if (!formData.account_sid || !formData.auth_token || !formData.phone_number) {
+    if (!formData.account_sid || !formData.auth_token || !formData.phone_number || !formData.personal_phone) {
       setError("Please fill in all fields")
       return
     }
@@ -222,6 +226,19 @@ export default function WhatsAppConnect({ onConnect }) {
                   />
                 </div>
 
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">Your Personal Phone Number</label>
+                  <input 
+                    type="text"
+                    name="personal_phone"
+                    value={formData.personal_phone}
+                    onChange={handleChange}
+                    placeholder="whatsapp:+1234567890"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent outline-none transition-all"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">We will send the verification code here.</p>
+                </div>
+
                 <button 
                   onClick={handleSendOtp}
                   disabled={loading}
@@ -233,7 +250,7 @@ export default function WhatsAppConnect({ onConnect }) {
                 
                 <div className="flex items-center justify-center gap-2 text-xs text-gray-500 mt-2">
                   <ShieldCheck className="w-4 h-4 text-green-500" />
-                  We will send an OTP to {user?.phone || 'your phone number'}
+                  We will send an OTP to this number
                 </div>
               </div>
             </div>
