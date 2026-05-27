@@ -153,6 +153,8 @@ async def send_twilio_otp(
     phone_number = credentials.phone_number.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
     if not phone_number.startswith("whatsapp:"):
         phone_number = f"whatsapp:{phone_number}"
+    if not phone_number.startswith("whatsapp:+"):
+        phone_number = phone_number.replace("whatsapp:", "whatsapp:+")
 
     # Generate 6-digit OTP
     otp = str(random.randint(100000, 999999))
@@ -212,6 +214,8 @@ async def verify_twilio_otp(
     phone_number = payload.phone_number.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
     if not phone_number.startswith("whatsapp:"):
         phone_number = f"whatsapp:{phone_number}"
+    if not phone_number.startswith("whatsapp:+"):
+        phone_number = phone_number.replace("whatsapp:", "whatsapp:+")
 
     # Valid! Save the credentials.
     current_user.twilio_account_sid = payload.account_sid

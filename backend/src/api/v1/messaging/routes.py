@@ -38,7 +38,7 @@ router = APIRouter(prefix="/messaging", tags=["Messaging"])
 # Twilio WhatsApp webhook (POST) — ACTIVE
 # ---------------------------------------------------------------------------
 
-@router.post("/twilio/webhook/{user_id}", response_model=WebhookResponse, summary="Twilio inbound WhatsApp webhook")
+@router.post("/twilio-webhook/{user_id}", response_model=WebhookResponse, summary="Twilio inbound WhatsApp webhook")
 async def twilio_webhook(
     user_id: str,
     db: AsyncSession = Depends(get_db),
