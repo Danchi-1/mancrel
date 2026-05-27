@@ -11,6 +11,7 @@ const menuItems = [
   { id: "deals", icon: Briefcase, label: "Deals" },
   { id: "escalations", icon: AlertTriangle, label: "Escalation" },
   { id: "customers", icon: Users, label: "Customers" },
+  { id: "integrations", icon: LayoutDashboard, label: "Integrations" }, // Reusing LayoutDashboard icon, can change later
 ]
 
 export function Sidebar({ isOpen, activeView, setActiveView, handleLogout }) {
