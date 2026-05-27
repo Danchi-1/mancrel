@@ -10,6 +10,7 @@ import AIInbox from "@/components/AIInbox"
 import WhatsAppConnect from "@/components/WhatsAppConnect"
 import { ProfileContent } from "@/components/ProfileContent"
 import { IntegrationsContent } from "@/components/IntegrationsContent"
+import { CatalogueContent } from "@/components/CatalogueContent"
 import { apiClient } from "@/lib/apiClient"
 import { ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react"
 
@@ -155,9 +156,10 @@ export default function DashboardPage() {
               {activeView === "inbox" && <AIInbox isDashboard={true} />}
               {activeView === "deals" && <DealsKanban />}
               {activeView === "escalations" && <EscalationsContent />}
-            {activeView === "customers" && <CustomersContent />}
-            {activeView === "profile" && <ProfileContent user={user} />}
-            {activeView === "integrations" && <IntegrationsContent user={user} setUser={setUser} />}
+              {activeView === "customers" && <CustomersContent />}
+              {activeView === "profile" && <ProfileContent user={user} />}
+              {activeView === "catalogue" && <CatalogueContent user={user} />}
+              {activeView === "integrations" && <IntegrationsContent user={user} setUser={setUser} />}
           </div>
         </main>
       </div>
