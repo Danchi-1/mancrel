@@ -9,8 +9,9 @@ import DealsKanban from "@/components/DealsKaban"
 import AIInbox from "@/components/AIInbox"
 import WhatsAppConnect from "@/components/WhatsAppConnect"
 import { ProfileContent } from "@/components/ProfileContent"
+import { IntegrationsContent } from "@/components/IntegrationsContent"
 import { apiClient } from "@/lib/apiClient"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -115,20 +116,25 @@ export default function DashboardPage() {
           </div>
         </header>
         {/* Dynamic Content Area */}
-        <main className="flex-1 overflow-auto bg-gray-50">
-          {!user.whatsapp_connected ? (
-            <WhatsAppConnect onConnect={async () => {
-              try {
-                await apiClient.patch('/auth/whatsapp/connect');
-                setUser({ ...user, whatsapp_connected: true });
-              } catch (e) {
-                console.error(e);
-              }
-            }} />
-          ) : (
-            <>
-              {activeView === "dashboard" && (
-                <div className="max-w-7xl mx-auto p-6">
+        <main className="flex-1 overflow-auto bg-gray-50 flex flex-col relative">
+          {!user.whatsapp_connected && activeView !== "integrations" && (
+            <div className="bg-amber-50 border-b border-amber-200 p-4 px-6 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
+                <p className="text-amber-800 text-sm font-medium">Your AI assistant is offline. Connect WhatsApp to start receiving messages.</p>
+              </div>
+              <button 
+                onClick={() => setActiveView("integrations")}
+                className="text-sm font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 px-4 py-1.5 rounded-lg transition-colors"
+              >
+                Connect Now
+              </button>
+            </div>
+          )}
+
+          <div className="flex-1 overflow-auto relative">
+            {activeView === "dashboard" && (
+              <div className="max-w-7xl mx-auto p-6">
                   <h1 className="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div className="bg-white p-6 rounded-xl border shadow-sm">
@@ -149,10 +155,10 @@ export default function DashboardPage() {
               {activeView === "inbox" && <AIInbox isDashboard={true} />}
               {activeView === "deals" && <DealsKanban />}
               {activeView === "escalations" && <EscalationsContent />}
-              {activeView === "customers" && <CustomersContent />}
-              {activeView === "profile" && <ProfileContent user={user} />}
-            </>
-          )}
+            {activeView === "customers" && <CustomersContent />}
+            {activeView === "profile" && <ProfileContent user={user} />}
+            {activeView === "integrations" && <IntegrationsContent user={user} setUser={setUser} />}
+          </div>
         </main>
       </div>
     </div>
