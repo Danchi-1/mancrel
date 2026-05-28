@@ -66,7 +66,7 @@ export default function WhatsAppConnect({ onConnect }) {
     setLoading(true)
     setError("")
     try {
-      await apiClient.post('/auth/twilio/verify-otp', {
+      const updatedUser = await apiClient.post('/auth/twilio/verify-otp', {
         ...formData,
         code: otpCode
       })
@@ -75,7 +75,7 @@ export default function WhatsAppConnect({ onConnect }) {
         ? 'https://mancrel-api.onrender.com' 
         : 'https://mancrel.onrender.com'
       
-      setWebhookUrl(`${host}/api/v1/messaging/twilio-webhook/${user?.id}`)
+      setWebhookUrl(`${host}/api/v1/messaging/twilio-webhook/${updatedUser.id}`)
       setStep(4) // Move to Webhook step
     } catch (err) {
       setError(err.message || "Invalid verification code")

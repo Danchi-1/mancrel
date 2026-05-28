@@ -34,6 +34,7 @@ export default function DashboardPage() {
         }
 
         setUser({
+          id: userData.id,
           name: `${userData.first_name} ${userData.last_name}`,
           email: userData.email,
           business_name: userData.business_name,
