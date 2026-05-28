@@ -206,7 +206,7 @@ RESPONSE FORMAT
 # ---------------------------------------------------------------------------
 
 
-DEFAULT_MODEL = "google/gemma-4-31b-it:free"
+DEFAULT_MODEL = "google/gemma-2-9b-it:free"
 
 # Free model availability rotates — what's listed here may go offline.
 # Always check the live list before switching:
