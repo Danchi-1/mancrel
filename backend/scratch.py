@@ -1,14 +1,17 @@
-import re
+import asyncio
+import httpx
 
-def format_phone(phone_str):
-    phone = phone_str.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
-    if not phone.startswith("whatsapp:"):
-        phone = f"whatsapp:{phone}"
-    if not phone.startswith("whatsapp:+"):
-        phone = phone.replace("whatsapp:", "whatsapp:+")
-    return phone
+async def main():
+    async with httpx.AsyncClient() as client:
+        # User ID doesn't exist, but it should return 'unknown_user' if the route hits
+        resp = await client.post(
+            "https://mancrel.onrender.com/api/v1/messaging/twilio-webhook/00000000-0000-0000-0000-000000000000",
+            data={
+                "From": "whatsapp:+1234567890",
+                "Body": "hello"
+            }
+        )
+        print(resp.status_code)
+        print(resp.text)
 
-print(format_phone("whatsapp:+14155238886"))
-print(format_phone("+1 415 523 8886"))
-print(format_phone("14155238886"))
-print(format_phone("whatsapp: 14155238886"))
+asyncio.run(main())
