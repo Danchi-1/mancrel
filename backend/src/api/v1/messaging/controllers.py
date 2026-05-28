@@ -322,14 +322,19 @@ async def handle_twilio_webhook(
         for i in db_items
     ]
     
-    result = generate_reply(
-        message=message_text,
-        classification=label,
-        catalogue_items=items,
-        conversation_history=conversation_history,
-    )
-    reply_text = result["reply"]
-    confidence = result.get("confidence", 1.0)
+    try:
+        result = generate_reply(
+            message=message_text,
+            classification=label,
+            catalogue_items=items,
+            conversation_history=conversation_history,
+        )
+        reply_text = result["reply"]
+        confidence = result.get("confidence", 1.0)
+    except Exception as e:
+        logger.error("[twilio_webhook] AI generation failed: %s", e)
+        reply_text = "I'm sorry, I'm having trouble connecting to my AI brain right now. Please try again later!"
+        confidence = 0.0
 
     # 4. Save inbound message
     now_str = datetime.utcnow().strftime("%I:%M %p")
