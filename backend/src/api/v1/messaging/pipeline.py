@@ -41,7 +41,7 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-DEFAULT_CLASSIFY_MODEL = "google/gemma-2-9b-it:free"
+DEFAULT_CLASSIFY_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
 
 def classify(text: str) -> str:
     """
@@ -206,7 +206,7 @@ RESPONSE FORMAT
 # ---------------------------------------------------------------------------
 
 
-DEFAULT_MODEL = "google/gemma-2-9b-it:free"
+DEFAULT_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
 
 # Free model availability rotates — what's listed here may go offline.
 # Always check the live list before switching:
