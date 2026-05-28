@@ -241,18 +241,17 @@ async def handle_meta_webhook(
 # ---------------------------------------------------------------------------
 
 def _safe_classify(message: str) -> str:
+    from .pipeline import classify
     try:
-        from .pipeline import classify
         return str(classify(message))
-    except (FileNotFoundError, ImportError):
-        # ML not installed on cloud — fall back to keyword-based classification
+    except Exception as e:
+        logger.error("[_safe_classify] Fallback triggered due to error: %s", e)
+        # Final safety net just in case the pipeline's internal fallback also fails
         text = message.lower()
         if any(w in text for w in ["price", "cost", "how much", "buy", "order", "available"]):
             return "sales_intent"
         if any(w in text for w in ["problem", "issue", "broken", "not working", "failed", "error"]):
             return "support_issue"
-        if any(w in text for w in ["hi", "hello", "good morning", "good evening", "hey"]):
-            return "polite_greeting"
         return "polite_greeting"
 
 

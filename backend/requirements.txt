@@ -8,10 +8,9 @@ python-multipart>=0.0.9
 openai>=1.30.0,<2.0.0
 
 # ── Message classifier (SetFit — CPU-safe, no GPU needed) ────────────────────
-setfit>=1.0.3
-sentence-transformers>=2.7.0
-datasets>=2.19.0
-pandas>=2.2.0
+# Local ML dependencies (setfit, sentence-transformers, datasets, pandas) 
+# have been removed to prevent Out-Of-Memory crashes on the Render free tier.
+# Classification now relies entirely on the OpenRouter API.
 
 # ── Database ──────────────────────────────────────────────────────────────────
 sqlalchemy>=2.0.0

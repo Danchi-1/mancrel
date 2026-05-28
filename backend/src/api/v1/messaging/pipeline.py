@@ -40,24 +40,12 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Classifier — SetFit (CPU, loaded lazily on first call)
-# ---------------------------------------------------------------------------
-
-_classifier = None
-
-
-def _get_classifier():
-    global _classifier
-    if _classifier is None:
-        from ml.training.train import load_classifier
-        _classifier = load_classifier()
-    return _classifier
-
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+DEFAULT_CLASSIFY_MODEL = "google/gemma-2-9b-it:free"
 
 def classify(text: str) -> str:
     """
-    Return the intent label for an incoming message.
+    Return the intent label for an incoming message using OpenRouter.
 
     Labels
     ------
@@ -65,12 +53,63 @@ def classify(text: str) -> str:
     sales_intent              — "How much?", "I want to buy this"
     support_issue             — "My payment failed", "App not working"
     irrelevant_or_inappropriate — off-topic or inappropriate messages
-
-    Raises FileNotFoundError if the classifier hasn't been trained yet.
-    Run:  python -m ml.training.train --train
     """
-    model = _get_classifier()
-    return model.predict([text])[0]
+    from openai import OpenAI
+
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        logger.warning("[classify] OPENROUTER_API_KEY missing, falling back to keywords")
+        return _keyword_fallback(text)
+
+    model_name = os.environ.get("OPENROUTER_CLASSIFY_MODEL", DEFAULT_CLASSIFY_MODEL)
+    client = OpenAI(
+        api_key=api_key,
+        base_url=OPENROUTER_BASE_URL,
+        default_headers={
+            "HTTP-Referer": os.environ.get("APP_URL", "https://mancrel.app"),
+            "X-Title": "Mancrel CRM",
+        },
+    )
+
+    prompt = f"""Classify the following customer message into EXACTLY ONE of these four labels:
+1. polite_greeting
+2. sales_intent
+3. support_issue
+4. irrelevant_or_inappropriate
+
+Rules:
+- Output ONLY the exact label string and nothing else.
+- No punctuation, no explanation.
+
+Customer message:
+"{text}"
+"""
+    try:
+        response = client.chat.completions.create(
+            model=model_name,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.0,
+            max_tokens=20,
+        )
+        label = response.choices[0].message.content.strip().lower()
+        
+        valid_labels = {"polite_greeting", "sales_intent", "support_issue", "irrelevant_or_inappropriate"}
+        if label in valid_labels:
+            return label
+        else:
+            logger.warning("[classify] LLM returned invalid label '%s', using fallback", label)
+            return _keyword_fallback(text)
+    except Exception as e:
+        logger.error("[classify] OpenRouter classification failed: %s", e)
+        return _keyword_fallback(text)
+
+def _keyword_fallback(text: str) -> str:
+    t = text.lower()
+    if any(w in t for w in ["price", "cost", "how much", "buy", "order", "available"]):
+        return "sales_intent"
+    if any(w in t for w in ["problem", "issue", "broken", "not working", "failed", "error"]):
+        return "support_issue"
+    return "polite_greeting"
 
 
 # ---------------------------------------------------------------------------
@@ -166,7 +205,7 @@ RESPONSE FORMAT
 # Reply generation
 # ---------------------------------------------------------------------------
 
-OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+
 DEFAULT_MODEL = "google/gemma-4-31b-it:free"
 
 # Free model availability rotates — what's listed here may go offline.
