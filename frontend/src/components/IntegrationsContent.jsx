@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import WhatsAppConnect from './WhatsAppConnect';
-import { ShieldCheck, LogOut, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, LogOut, CheckCircle2, Copy } from 'lucide-react';
 import { apiClient } from '@/lib/apiClient';
 
 export function IntegrationsContent({ user, setUser }) {
   const [loading, setLoading] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -70,8 +71,22 @@ export function IntegrationsContent({ user, setUser }) {
         <div className="space-y-6">
           <div>
             <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-2">Your Webhook URL</h3>
-            <div className="bg-gray-50 border p-4 rounded-xl font-mono text-sm text-gray-600 break-all">
-              {webhookUrl}
+            <div className="flex items-center gap-2">
+              <div className="bg-gray-50 border p-4 rounded-xl font-mono text-sm text-gray-600 break-all flex-1">
+                {webhookUrl}
+              </div>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(webhookUrl);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="flex items-center gap-2 px-4 py-4 border rounded-xl hover:bg-gray-50 text-sm font-medium transition-colors"
+                title="Copy to clipboard"
+              >
+                <Copy className="w-4 h-4" />
+                {copied ? "Copied!" : "Copy"}
+              </button>
             </div>
             <p className="text-xs text-gray-500 mt-2">This is the URL configured in your Twilio Sandbox settings.</p>
           </div>
