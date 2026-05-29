@@ -245,3 +245,109 @@ async def classify_endpoint(request: ClassifyRequest) -> ClassifyResponse:
 @router.post("/reply", response_model=ReplyResponse)
 async def reply_endpoint(request: ReplyRequest) -> ReplyResponse:
     return await handle_reply(request)
+
+
+# ---------------------------------------------------------------------------
+# Outbound Messaging endpoints
+# ---------------------------------------------------------------------------
+from pydantic import BaseModel
+
+class SendManualRequest(BaseModel):
+    to_phone: str
+    message: str
+
+@router.post("/send-manual")
+async def send_manual_message(
+    request: SendManualRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Manually send a WhatsApp message to a customer, overriding the AI."""
+    from twilio.rest import Client
+    from datetime import datetime
+    
+    if not current_user.twilio_account_sid or not current_user.twilio_auth_token:
+        raise HTTPException(status_code=400, detail="Twilio credentials not configured")
+        
+    try:
+        client = Client(current_user.twilio_account_sid, current_user.twilio_auth_token)
+        to_num = request.to_phone
+        if not to_num.startswith("whatsapp:"):
+            if not to_num.startswith("+"): to_num = "+" + to_num
+            to_num = f"whatsapp:{to_num}"
+            
+        from_num = current_user.twilio_phone_number
+        if not from_num.startswith("whatsapp:"):
+            from_num = f"whatsapp:{from_num}"
+            
+        twilio_msg = client.messages.create(
+            from_=from_num,
+            body=request.message,
+            to=to_num
+        )
+        
+        # Save to DB
+        now_str = datetime.utcnow().strftime("%I:%M %p")
+        outbound_msg = Message(
+            user_id=current_user.id,
+            sender_phone=request.to_phone,
+            direction="outbound",
+            from_name=current_user.first_name,
+            full_text=request.message,
+            preview=request.message[:80],
+            time=now_str,
+            unread=False,
+            sentiment="neutral",
+        )
+        db.add(outbound_msg)
+        await db.commit()
+        return {"status": "success", "message_sid": twilio_msg.sid}
+    except Exception as e:
+        logger.error(f"Failed to send manual message: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class BroadcastRequest(BaseModel):
+    phones: list[str]
+    template_message: str
+
+@router.post("/broadcast")
+async def send_broadcast(
+    request: BroadcastRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Send a broadcast template message to multiple customers."""
+    from twilio.rest import Client
+    if not current_user.twilio_account_sid or not current_user.twilio_auth_token:
+        raise HTTPException(status_code=400, detail="Twilio credentials not configured")
+        
+    client = Client(current_user.twilio_account_sid, current_user.twilio_auth_token)
+    from_num = current_user.twilio_phone_number
+    if not from_num.startswith("whatsapp:"):
+        from_num = f"whatsapp:{from_num}"
+        
+    success_count = 0
+    errors = []
+    
+    for phone in request.phones:
+        try:
+            to_num = phone
+            if not to_num.startswith("whatsapp:"):
+                if not to_num.startswith("+"): to_num = "+" + to_num
+                to_num = f"whatsapp:{to_num}"
+                
+            client.messages.create(
+                from_=from_num,
+                body=request.template_message,
+                to=to_num
+            )
+            success_count += 1
+        except Exception as e:
+            errors.append({"phone": phone, "error": str(e)})
+            
+    return {
+        "status": "completed",
+        "success_count": success_count,
+        "failed_count": len(errors),
+        "errors": errors
+    }
