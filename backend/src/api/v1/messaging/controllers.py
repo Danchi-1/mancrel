@@ -72,7 +72,7 @@ async def handle_reply(request: ReplyRequest) -> ReplyResponse:
         if request.catalogue_items:
             catalogue_dicts = [item.model_dump(exclude_none=True) for item in request.catalogue_items]
 
-        result = generate_reply(
+        result = await generate_reply(
             message=request.message,
             classification=label,
             catalogue_items=catalogue_dicts,
@@ -95,30 +95,37 @@ async def handle_reply(request: ReplyRequest) -> ReplyResponse:
 # Meta Cloud API webhook
 # ---------------------------------------------------------------------------
 
-async def handle_meta_webhook(
-    db: AsyncSession,
+async def process_meta_webhook_bg(
+    user_id: str,
     sender_phone: str,
     sender_name: str,
     message_text: str,
     wa_message_id: str,
-    user: User,
-) -> WebhookResponse:
+):
     """
-    Full pipeline for an inbound Meta WhatsApp message:
-      1. Deduplicate (Meta re-delivers on failure)
-      2. Fetch conversation history for this sender
+    Full background pipeline for an inbound Meta WhatsApp message:
+      1. Deduplicate
+      2. Fetch conversation history
       3. Classify intent
-      4. Generate AI reply with history + catalogue context
-      5. Send reply via Meta Graph API
-      6. Persist both inbound + outbound messages
+      4. Generate AI reply
+      5. Send reply via Meta
+      6. Persist messages
     """
-    logger.info("[meta_webhook] Inbound from %s (%s): %s", sender_name, sender_phone, message_text[:80])
+    from db.session import AsyncSessionLocal
+    async with AsyncSessionLocal() as db:
+        user_result = await db.execute(select(User).where(User.id == user_id))
+        user = user_result.scalar_one_or_none()
+        if not user:
+            logger.error("[meta_webhook_bg] User %s not found.", user_id)
+            return
 
-    # 1. Deduplicate by wa_message_id
-    existing = await db.execute(select(Message).where(Message.wa_message_id == wa_message_id))
-    if existing.scalar_one_or_none():
-        logger.info("[meta_webhook] Duplicate message %s, skipping.", wa_message_id)
-        return WebhookResponse(status="duplicate", from_number=sender_phone, label="", reply_queued=False)
+        logger.info("[meta_webhook_bg] Inbound from %s (%s): %s", sender_name, sender_phone, message_text[:80])
+
+        # 1. Deduplicate by wa_message_id
+        existing = await db.execute(select(Message).where(Message.wa_message_id == wa_message_id))
+        if existing.scalar_one_or_none():
+            logger.info("[meta_webhook_bg] Duplicate message %s, skipping.", wa_message_id)
+            return
 
     # 2. Fetch last 10 messages with this sender (conversation history)
     history_result = await db.execute(
@@ -150,13 +157,30 @@ async def handle_meta_webhook(
         for i in db_items
     ]
 
-    # 4. Generate AI reply
-    result = generate_reply(
-        message=message_text,
-        classification=label,
-        catalogue_items=items,
-        conversation_history=conversation_history,
-    )
+        # Define the tool call loading callback
+        async def on_tool_call():
+            if user.wa_phone_number_id and user.wa_access_token:
+                try:
+                    async with httpx.AsyncClient() as client:
+                        await client.post(
+                            f"{META_API_BASE}/{user.wa_phone_number_id}/messages",
+                            headers={"Authorization": f"Bearer {user.wa_access_token}", "Content-Type": "application/json"},
+                            json={"messaging_product": "whatsapp", "to": sender_phone, "type": "text", "text": {"body": "Just a moment while I pull up those details..."}},
+                            timeout=5.0,
+                        )
+                except Exception as e:
+                    logger.error("[meta_webhook_bg] Failed to send loading message: %s", e)
+
+        # 4. Generate AI reply
+        result = await generate_reply(
+            message=message_text,
+            classification=label,
+            db=db,
+            user_id=user.id,
+            catalogue_items=items,
+            conversation_history=conversation_history,
+            on_tool_call=on_tool_call,
+        )
     reply_text = result["reply"]
     confidence = result.get("confidence", 1.0)
 
@@ -226,14 +250,7 @@ async def handle_meta_webhook(
     else:
         logger.warning("[meta_webhook] WA credentials not set for user %s", user.id)
 
-    await db.commit()
-
-    return WebhookResponse(
-        status="ok",
-        from_number=sender_phone,
-        label=label,
-        reply_queued=reply_queued,
-    )
+        await db.commit()
 
 
 # ---------------------------------------------------------------------------
@@ -269,27 +286,32 @@ def _label_to_sentiment(label: str) -> str:
 # Twilio WhatsApp webhook handler
 # ---------------------------------------------------------------------------
 
-async def handle_twilio_webhook(
-    db: AsyncSession,
-    user: User,
+async def process_twilio_webhook_bg(
+    user_id: str,
     sender_phone: str,
     sender_name: str,
     message_text: str,
     message_sid: str | None,
-) -> WebhookResponse:
+):
     """
-    Process an inbound Twilio WhatsApp message.
-    Reuses the same conversation history, AI pipeline, and DB storage
-    as the Meta handler — only the reply delivery differs (Twilio REST API).
+    Process an inbound Twilio WhatsApp message in the background.
     """
-    logger.info("[twilio_webhook] Inbound from %s (%s): %s", sender_name, sender_phone, message_text[:80])
+    from db.session import AsyncSessionLocal
+    async with AsyncSessionLocal() as db:
+        user_result = await db.execute(select(User).where(User.id == user_id))
+        user = user_result.scalar_one_or_none()
+        if not user:
+            logger.error("[twilio_webhook_bg] User %s not found.", user_id)
+            return
 
-    # 1. Deduplicate by Twilio MessageSid
-    if message_sid:
-        existing = await db.execute(select(Message).where(Message.wa_message_id == message_sid))
-        if existing.scalar_one_or_none():
-            logger.info("[twilio_webhook] Duplicate %s, skipping.", message_sid)
-            return WebhookResponse(status="duplicate", from_number=sender_phone, label="", reply_queued=False)
+        logger.info("[twilio_webhook_bg] Inbound from %s (%s): %s", sender_name, sender_phone, message_text[:80])
+
+        # 1. Deduplicate by Twilio MessageSid
+        if message_sid:
+            existing = await db.execute(select(Message).where(Message.wa_message_id == message_sid))
+            if existing.scalar_one_or_none():
+                logger.info("[twilio_webhook_bg] Duplicate %s, skipping.", message_sid)
+                return
 
     # 2. Fetch conversation history (last 10 messages with this sender)
     history_result = await db.execute(
@@ -321,12 +343,37 @@ async def handle_twilio_webhook(
         for i in db_items
     ]
     
-    try:
-        result = generate_reply(
+        # Define Twilio loading indicator
+        async def on_tool_call():
+            twilio_sid = user.twilio_account_sid or os.environ.get("TWILIO_ACCOUNT_SID")
+            twilio_token = user.twilio_auth_token or os.environ.get("TWILIO_AUTH_TOKEN")
+            twilio_number = user.twilio_phone_number or os.environ.get("TWILIO_PHONE_NUMBER")
+            if twilio_sid and twilio_token and twilio_number:
+                try:
+                    from twilio.rest import Client as TwilioClient
+                    client = TwilioClient(twilio_sid, twilio_token)
+                    # Use a thread pool to avoid blocking the async event loop with Twilio's sync client
+                    import asyncio
+                    loop = asyncio.get_event_loop()
+                    await loop.run_in_executor(
+                        None,
+                        lambda: client.messages.create(
+                            from_=twilio_number,
+                            to=f"whatsapp:{sender_phone}",
+                            body="Just a moment while I pull up those details..."
+                        )
+                    )
+                except Exception as e:
+                    logger.error("[twilio_webhook_bg] Failed to send loading message: %s", e)
+
+        result = await generate_reply(
             message=message_text,
             classification=label,
+            db=db,
+            user_id=user.id,
             catalogue_items=items,
             conversation_history=conversation_history,
+            on_tool_call=on_tool_call,
         )
         reply_text = result["reply"]
         confidence = result.get("confidence", 1.0)
@@ -390,15 +437,5 @@ async def handle_twilio_webhook(
             db.add(outbound_msg)
         except Exception as e:
             logger.error("[twilio_webhook] Failed to send Twilio reply: %s", e)
-    else:
-        logger.warning("[twilio_webhook] Twilio credentials not configured — reply not sent.")
-
-    await db.commit()
-
-    return WebhookResponse(
-        status="ok",
-        from_number=sender_phone,
-        label=label,
-        reply_queued=reply_queued,
-    )
+        await db.commit()
 
