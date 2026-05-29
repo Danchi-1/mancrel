@@ -13,10 +13,12 @@ export function CatalogueContent({ user }) {
     price: '',
     available: true,
     description: '',
-    sku: ''
+    sku: '',
+    image_url: ''
   });
   
   const [formLoading, setFormLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState('');
 
   const fetchItems = async () => {
@@ -44,11 +46,12 @@ export function CatalogueContent({ user }) {
         price: item.price || '',
         available: item.available,
         description: item.description || '',
-        sku: item.sku || ''
+        sku: item.sku || '',
+        image_url: item.image_url || ''
       });
     } else {
       setEditingItem(null);
-      setFormData({ name: '', price: '', available: true, description: '', sku: '' });
+      setFormData({ name: '', price: '', available: true, description: '', sku: '', image_url: '' });
     }
     setIsModalOpen(true);
   };
@@ -69,6 +72,54 @@ export function CatalogueContent({ user }) {
       setError(err.message || "An error occurred");
     } finally {
       setFormLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setUploadingImage(true);
+    setError('');
+    
+    const formDataObj = new FormData();
+    formDataObj.append('file', file);
+    
+    try {
+      // Temporary endpoint URL mapping
+      const host = window.location.hostname === 'localhost' 
+        ? 'http://localhost:8000/api/v1' 
+        : 'https://mancrel-api.onrender.com/api/v1';
+        
+      const response = await fetch(`${host}/catalogue/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formDataObj
+      });
+      
+      if (!response.ok) throw new Error("Failed to upload image");
+      
+      const data = await response.json();
+      setFormData({ ...formData, image_url: data.url });
+    } catch (err) {
+      setError("Image upload failed. Check your S3 configuration.");
+      console.error(err);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const pseudoEvent = { target: { files: e.dataTransfer.files } };
+      handleImageUpload(pseudoEvent);
     }
   };
 
@@ -158,6 +209,12 @@ export function CatalogueContent({ user }) {
                     </div>
                   </div>
                   
+                  {item.image_url && (
+                    <div className="w-full h-32 mb-3 bg-gray-100 rounded-lg overflow-hidden border">
+                      <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  
                   <div className="text-xl font-bold text-[#4F46E5] mb-3">
                     {item.price || "Contact for price"}
                   </div>
@@ -219,6 +276,48 @@ export function CatalogueContent({ user }) {
                     placeholder="e.g. Premium Subscription"
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#4F46E5] outline-none transition-shadow"
                   />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Product Image</label>
+                  
+                  {formData.image_url ? (
+                    <div className="relative w-full h-48 rounded-xl overflow-hidden border border-gray-200 group">
+                      <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          type="button"
+                          onClick={() => setFormData({...formData, image_url: ''})}
+                          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                        >
+                          Remove Image
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div 
+                      className="border-2 border-dashed border-gray-300 rounded-xl bg-[#0f172a] text-center p-8 transition-colors hover:border-[#4F46E5] group"
+                      onDragOver={handleDragOver}
+                      onDrop={handleDrop}
+                    >
+                      <div className="mx-auto w-12 h-12 rounded-full border border-gray-600 flex items-center justify-center mb-4 group-hover:border-[#4F46E5] transition-colors">
+                        {uploadingImage ? (
+                          <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
+                        ) : (
+                          <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                          </svg>
+                        )}
+                      </div>
+                      <h4 className="text-white font-bold mb-1">Drag & drop image here</h4>
+                      <p className="text-sm text-gray-400 mb-6">JPG, PNG, WEBP supported</p>
+                      
+                      <label className="cursor-pointer inline-block bg-transparent border border-gray-600 hover:border-gray-400 text-white px-6 py-2 rounded-full text-sm font-medium transition-colors">
+                        Browse Files
+                        <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
+                      </label>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
