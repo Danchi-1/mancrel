@@ -41,7 +41,7 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-DEFAULT_CLASSIFY_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
+DEFAULT_CLASSIFY_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
 
 def classify(text: str) -> str:
     """
@@ -197,7 +197,7 @@ RESPONSE FORMAT
 - Keep replies under 120 words unless the customer's complexity demands more.
 - Write in plain conversational text. No markdown, no bullet points.
 - End sales replies with a clear call to action.
-- Sign off as "the team" not as a named individual.
+- Do not use any generic sign-offs like "The team" or "Mancrel AI". Just end the message naturally.
 """
 
 
