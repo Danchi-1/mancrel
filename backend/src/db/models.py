@@ -29,6 +29,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     marketing_consent = Column(Boolean, default=False)
     terms_accepted = Column(Boolean, default=False)
+    email_verified = Column(Boolean, default=False)
     whatsapp_connected = Column(Boolean, default=False)
 
     # WhatsApp Business (Meta Cloud API) credentials — stored per user
@@ -112,6 +113,7 @@ class CatalogueItem(Base):
     available = Column(Boolean, default=True)
     description = Column(Text, nullable=True)
     sku = Column(String, nullable=True)
+    image_url = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     user = relationship("User", backref="catalogue_items")
