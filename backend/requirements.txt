@@ -31,3 +31,6 @@ twilio==9.10.9
 httpx>=0.27.0           # async HTTP client for Meta Graph API calls
 google-auth==2.53.0
 requests>=2.31.0
+boto3>=1.34.0
+python-multipart>=0.0.9
+fastapi-mail>=1.4.1
