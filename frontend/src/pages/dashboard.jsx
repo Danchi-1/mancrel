@@ -11,6 +11,7 @@ import WhatsAppConnect from "@/components/WhatsAppConnect"
 import { ProfileContent } from "@/components/ProfileContent"
 import { IntegrationsContent } from "@/components/IntegrationsContent"
 import { CatalogueContent } from "@/components/CatalogueContent"
+import { CampaignsContent } from "@/components/CampaignsContent"
 import { apiClient } from "@/lib/apiClient"
 import { ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react"
 
@@ -160,6 +161,7 @@ export default function DashboardPage() {
               {activeView === "customers" && <CustomersContent />}
               {activeView === "profile" && <ProfileContent user={user} />}
               {activeView === "catalogue" && <CatalogueContent user={user} />}
+              {activeView === "campaigns" && <CampaignsContent user={user} />}
               {activeView === "integrations" && <IntegrationsContent user={user} setUser={setUser} />}
           </div>
         </main>
