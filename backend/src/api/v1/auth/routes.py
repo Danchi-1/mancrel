@@ -3,18 +3,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 import httpx
 import secrets
+import os
+import random
+from datetime import datetime, timedelta
+from google.oauth2 import id_token
+from google.auth.transport import requests
 
 from db.session import get_db
 from db.models import User
 from core.security import get_password_hash, verify_password, create_access_token
 from .schemas import UserCreate, UserLogin, Token, UserResponse, WhatsAppConnectRequest, GoogleLoginRequest, UserUpdate, TwilioConnectRequest, TwilioVerifyOtpRequest
 from .deps import get_current_user
-
-import os
-import random
-from datetime import datetime, timedelta
-from google.oauth2 import id_token
-from google.auth.transport import requests
+from api.v1.messaging.email_service import send_email_confirmation
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -44,7 +44,38 @@ async def signup(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     db.add(user)
     await db.commit()
     await db.refresh(user)
+    
+    # Send confirmation email
+    token = create_access_token(subject=user.id)
+    import asyncio
+    asyncio.create_task(send_email_confirmation(user.email, user.first_name, token))
+    
     return user
+
+@router.get("/confirm-email")
+async def confirm_email(token: str, db: AsyncSession = Depends(get_db)):
+    from core.security import ALGORITHM, SECRET_KEY
+    from jose import jwt, JWTError
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=400, detail="Invalid token")
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Invalid or expired token")
+        
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    user.email_verified = True
+    await db.commit()
+    
+    # Redirect to frontend success page
+    from fastapi.responses import RedirectResponse
+    frontend_url = os.environ.get("APP_URL", "https://mancrel.vercel.app")
+    return RedirectResponse(url=f"{frontend_url}/dashboard?verified=true")
 
 @router.post("/signin", response_model=Token)
 async def signin(user_in: UserLogin, db: AsyncSession = Depends(get_db)):
