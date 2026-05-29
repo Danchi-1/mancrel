@@ -12,6 +12,7 @@ const menuItems = [
   { id: "escalations", icon: AlertTriangle, label: "Escalation" },
   { id: "customers", icon: Users, label: "Customers" },
   { id: "catalogue", icon: Briefcase, label: "Catalogue" },
+  { id: "campaigns", icon: Inbox, label: "Campaigns" },
   { id: "integrations", icon: LayoutDashboard, label: "Integrations" }, // Reusing LayoutDashboard icon, can change later
 ]
 
