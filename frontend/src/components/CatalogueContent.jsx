@@ -104,7 +104,7 @@ export function CatalogueContent({ user }) {
       const data = await response.json();
       setFormData({ ...formData, image_url: data.url });
     } catch (err) {
-      setError("Image upload failed. Check your S3 configuration.");
+      setError("Image upload failed. Ensure CLOUDINARY_URL is set in your backend environment.");
       console.error(err);
     } finally {
       setUploadingImage(false);
