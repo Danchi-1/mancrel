@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 DEFAULT_CLASSIFY_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
 
-def classify(text: str) -> str:
+async def classify(text: str) -> str:
     """
     Return the intent label for an incoming message using OpenRouter.
 
@@ -55,7 +55,7 @@ def classify(text: str) -> str:
     support_issue             — "My payment failed", "App not working"
     irrelevant_or_inappropriate — off-topic or inappropriate messages
     """
-    from openai import OpenAI
+    from openai import AsyncOpenAI
 
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
@@ -63,7 +63,7 @@ def classify(text: str) -> str:
         return _keyword_fallback(text)
 
     model_name = os.environ.get("OPENROUTER_CLASSIFY_MODEL", DEFAULT_CLASSIFY_MODEL)
-    client = OpenAI(
+    client = AsyncOpenAI(
         api_key=api_key,
         base_url=OPENROUTER_BASE_URL,
         default_headers={
@@ -86,7 +86,7 @@ Customer message:
 "{text}"
 """
     try:
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model=model_name,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.0,
@@ -224,7 +224,8 @@ DEFAULT_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from db.models import Customer, Deal
+from db.models import Customer, Deal, Escalation, User
+import json
 
 async def generate_reply(
     message: str,
@@ -337,11 +338,32 @@ async def generate_reply(
                     "required": []
                 }
             }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "create_escalation",
+                "description": "Create an escalation ticket to alert a human manager if the customer is angry, requesting a human, or the issue cannot be resolved by AI.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "customer_name": {
+                            "type": "string",
+                            "description": "The name of the customer, or 'Unknown' with phone number e.g 'Unknown +2348000000000' if not provided."
+                        },
+                        "issue_type": {
+                            "type": "string",
+                            "description": "A short summary of what the customer is angry or asking about."
+                        }
+                    },
+                    "required": ["customer_name", "issue_type"]
+                }
+            }
         }
     ]
 
     try:
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model=model_name,
             messages=messages,
             tools=tools,
@@ -385,7 +407,52 @@ async def generate_reply(
                 "content": tool_result
             })
             
-            response = client.chat.completions.create(
+            response = await client.chat.completions.create(
+                model=model_name,
+                messages=messages,
+                max_tokens=250,
+                temperature=0.3,
+            )
+            choice = response.choices[0]
+            
+        elif tool_call.function.name == "create_escalation" and db and user_id:
+            try:
+                args = json.loads(tool_call.function.arguments)
+                customer_name = args.get("customer_name", "Unknown")
+                issue_type = args.get("issue_type", "General Support Escalation")
+                
+                # Save Escalation to DB
+                new_esc = Escalation(
+                    user_id=user_id,
+                    customer_name=customer_name,
+                    issue_type=issue_type,
+                    channel="whatsapp",
+                    status="Open"
+                )
+                db.add(new_esc)
+                # Flush to get ID if needed, but not strictly required
+                
+                # Fetch user to trigger alert
+                user_res = await db.execute(select(User).where(User.id == user_id))
+                user_obj = user_res.scalar_one_or_none()
+                if user_obj:
+                    from api.v1.messaging.escalation_service import trigger_escalation_alert
+                    await trigger_escalation_alert(db, new_esc, user_obj)
+                
+                tool_result = "Escalation created successfully. Human manager has been alerted."
+            except Exception as e:
+                logger.error(f"[pipeline] Failed to create escalation: {e}")
+                tool_result = "Failed to create escalation."
+                
+            messages.append(choice.message)
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "name": tool_call.function.name,
+                "content": tool_result
+            })
+            
+            response = await client.chat.completions.create(
                 model=model_name,
                 messages=messages,
                 max_tokens=250,
@@ -396,6 +463,10 @@ async def generate_reply(
     raw_reply_text = choice.message.content.strip() if choice.message.content else ""
     # Strip <think> blocks
     reply_text = re.sub(r'<think>.*?</think>', '', raw_reply_text, flags=re.DOTALL).strip()
+    
+    # Fallback if the model only output thoughts or an empty string
+    if not reply_text:
+        reply_text = "I'm sorry, I'm processing a lot right now. Could you rephrase your question?"
     
     confidence = 1.0 if choice.finish_reason == "stop" else 0.6
 

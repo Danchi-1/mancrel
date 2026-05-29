@@ -48,7 +48,7 @@ TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER")  # e.g. "whatsapp:+1
 
 async def handle_classify(request: ClassifyRequest) -> ClassifyResponse:
     try:
-        label = _safe_classify(request.message)
+        label = await _safe_classify(request.message)
         return ClassifyResponse(message=request.message, label=str(label))
     except FileNotFoundError as exc:
         logger.error("[classify] Classifier not found: %s", exc)
@@ -67,7 +67,7 @@ async def handle_classify(request: ClassifyRequest) -> ClassifyResponse:
 
 async def handle_reply(request: ReplyRequest) -> ReplyResponse:
     try:
-        label = _safe_classify(request.message)
+        label = await _safe_classify(request.message)
         catalogue_dicts: list[dict[str, Any]] | None = None
         if request.catalogue_items:
             catalogue_dicts = [item.model_dump(exclude_none=True) for item in request.catalogue_items]
@@ -141,7 +141,7 @@ async def process_meta_webhook_bg(
     ]
 
     # 3. Classify intent (graceful fallback if ML not installed)
-    label = _safe_classify(message_text)
+    label = await _safe_classify(message_text)
     
     # 3b. Fetch catalogue
     cat_res = await db.execute(select(CatalogueItem).where(CatalogueItem.user_id == user.id))
@@ -257,10 +257,10 @@ async def process_meta_webhook_bg(
 # Private helpers
 # ---------------------------------------------------------------------------
 
-def _safe_classify(message: str) -> str:
+async def _safe_classify(message: str) -> str:
     from .pipeline import classify
     try:
-        return str(classify(message))
+        return str(await classify(message))
     except Exception as e:
         logger.error("[_safe_classify] Fallback triggered due to error: %s", e)
         # Final safety net just in case the pipeline's internal fallback also fails
@@ -327,7 +327,7 @@ async def process_twilio_webhook_bg(
     ]
 
     # 3. Classify + generate AI reply
-    label = _safe_classify(message_text)
+    label = await _safe_classify(message_text)
     
     # Fetch catalogue
     cat_res = await db.execute(select(CatalogueItem).where(CatalogueItem.user_id == user.id))
@@ -413,10 +413,15 @@ async def process_twilio_webhook_bg(
         try:
             from twilio.rest import Client as TwilioClient
             client = TwilioClient(twilio_sid, twilio_token)
-            sent = client.messages.create(
-                from_=twilio_number,
-                to=f"whatsapp:{sender_phone}",
-                body=reply_text,
+            import asyncio
+            loop = asyncio.get_event_loop()
+            sent = await loop.run_in_executor(
+                None,
+                lambda: client.messages.create(
+                    from_=twilio_number,
+                    to=f"whatsapp:{sender_phone}",
+                    body=reply_text,
+                )
             )
             reply_queued = True
             logger.info("[twilio_webhook] Reply sent via Twilio: %s", sent.sid)

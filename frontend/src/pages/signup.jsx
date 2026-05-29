@@ -91,8 +91,10 @@ export default function SignUpPage() {
         marketing_consent: formData.marketingConsent,
         terms_accepted: formData.termsAccepted,
       }, false);
-      
-      setMessage({ type: 'success', text: 'Account created! Please sign in.' })
+      setMessage({ type: 'success', text: 'Account created! Redirecting...' })
+      setTimeout(() => {
+        router.push('/verify-email')
+      }, 1000)
     } catch (err) {
       setMessage({ type: 'error', text: err.message || 'Sign up failed' })
     } finally {

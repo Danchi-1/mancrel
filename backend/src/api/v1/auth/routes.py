@@ -87,6 +87,11 @@ async def signin(user_in: UserLogin, db: AsyncSession = Depends(get_db)):
         raise HTTPException(
             status_code=401, detail="Incorrect email or password"
         )
+        
+    if not user.email_verified:
+        raise HTTPException(
+            status_code=403, detail="Please verify your email address before signing in."
+        )
     
     access_token = create_access_token(subject=user.id)
     return {"access_token": access_token, "token_type": "bearer"}
