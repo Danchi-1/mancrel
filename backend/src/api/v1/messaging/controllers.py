@@ -157,30 +157,30 @@ async def process_meta_webhook_bg(
         for i in db_items
     ]
 
-        # Define the tool call loading callback
-        async def on_tool_call():
-            if user.wa_phone_number_id and user.wa_access_token:
-                try:
-                    async with httpx.AsyncClient() as client:
-                        await client.post(
-                            f"{META_API_BASE}/{user.wa_phone_number_id}/messages",
-                            headers={"Authorization": f"Bearer {user.wa_access_token}", "Content-Type": "application/json"},
-                            json={"messaging_product": "whatsapp", "to": sender_phone, "type": "text", "text": {"body": "Just a moment while I pull up those details..."}},
-                            timeout=5.0,
-                        )
-                except Exception as e:
-                    logger.error("[meta_webhook_bg] Failed to send loading message: %s", e)
+    # Define the tool call loading callback
+    async def on_tool_call():
+        if user.wa_phone_number_id and user.wa_access_token:
+            try:
+                async with httpx.AsyncClient() as client:
+                    await client.post(
+                        f"{META_API_BASE}/{user.wa_phone_number_id}/messages",
+                        headers={"Authorization": f"Bearer {user.wa_access_token}", "Content-Type": "application/json"},
+                        json={"messaging_product": "whatsapp", "to": sender_phone, "type": "text", "text": {"body": "Just a moment while I pull up those details..."}},
+                        timeout=5.0,
+                    )
+            except Exception as e:
+                logger.error("[meta_webhook_bg] Failed to send loading message: %s", e)
 
-        # 4. Generate AI reply
-        result = await generate_reply(
-            message=message_text,
-            classification=label,
-            db=db,
-            user_id=user.id,
-            catalogue_items=items,
-            conversation_history=conversation_history,
-            on_tool_call=on_tool_call,
-        )
+    # 4. Generate AI reply
+    result = await generate_reply(
+        message=message_text,
+        classification=label,
+        db=db,
+        user_id=user.id,
+        catalogue_items=items,
+        conversation_history=conversation_history,
+        on_tool_call=on_tool_call,
+    )
     reply_text = result["reply"]
     confidence = result.get("confidence", 1.0)
 
