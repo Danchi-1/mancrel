@@ -36,7 +36,8 @@ OPENROUTER_MODEL    — model name in OpenRouter format
 
 import os
 import logging
-from typing import Optional
+import re
+from typing import Optional, Callable, Awaitable
 
 logger = logging.getLogger(__name__)
 
@@ -198,6 +199,7 @@ RESPONSE FORMAT
 - Write in plain conversational text. No markdown, no bullet points.
 - End sales replies with a clear call to action.
 - Do not use any generic sign-offs like "The team" or "Mancrel AI". Just end the message naturally.
+- IMPORTANT: DO NOT output any internal thoughts, reasoning steps, or <think> tags. Only output the final response that the customer will see.
 """
 
 
@@ -220,11 +222,18 @@ DEFAULT_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
 #   nvidia/nemotron-3-super-120b-a12b:free
 
 
-def generate_reply(
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from db.models import Customer, Deal
+
+async def generate_reply(
     message: str,
     classification: str,
+    db: AsyncSession = None,
+    user_id: str = None,
     catalogue_items: Optional[list[dict]] = None,
     conversation_history: Optional[list[dict]] = None,
+    on_tool_call: Optional[Callable[[], Awaitable[None]]] = None,
 ) -> dict:
     """
     Generate a reply draft for an incoming customer message.
@@ -316,12 +325,28 @@ def generate_reply(
         len(catalogue_items) if catalogue_items else 0,
     )
 
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "get_active_deals",
+                "description": "Get all active deals and their value for the user",
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            }
+        }
+    ]
+
     try:
         response = client.chat.completions.create(
             model=model_name,
             messages=messages,
+            tools=tools,
             max_tokens=250,
-            temperature=0.3,   # lower = more factual, less creative — important for prices
+            temperature=0.3,
         )
     except Exception as e:
         error_str = str(e)
@@ -335,7 +360,43 @@ def generate_reply(
         raise
 
     choice = response.choices[0]
-    reply_text = choice.message.content.strip()
+    
+    if choice.message.tool_calls:
+        # Simple tool execution mock for active deals
+        tool_call = choice.message.tool_calls[0]
+        
+        # Fire the loading indicator callback if provided
+        if on_tool_call:
+            try:
+                await on_tool_call()
+            except Exception as e:
+                logger.error("[pipeline] on_tool_call callback failed: %s", e)
+
+        if tool_call.function.name == "get_active_deals" and db and user_id:
+            result = await db.execute(select(Deal).where(Deal.user_id == user_id, Deal.status != 'Closed Lost'))
+            deals = result.scalars().all()
+            tool_result = f"Found {len(deals)} active deals."
+            
+            messages.append(choice.message)
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "name": tool_call.function.name,
+                "content": tool_result
+            })
+            
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=messages,
+                max_tokens=250,
+                temperature=0.3,
+            )
+            choice = response.choices[0]
+
+    raw_reply_text = choice.message.content.strip() if choice.message.content else ""
+    # Strip <think> blocks
+    reply_text = re.sub(r'<think>.*?</think>', '', raw_reply_text, flags=re.DOTALL).strip()
+    
     confidence = 1.0 if choice.finish_reason == "stop" else 0.6
 
     return {

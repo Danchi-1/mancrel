@@ -26,7 +26,12 @@ from db.session import get_db
 from db.models import Message, User
 from api.v1.auth.deps import get_current_user
 
-from .controllers import handle_classify, handle_reply, handle_meta_webhook, handle_twilio_webhook
+from .controllers import (
+    handle_classify,
+    handle_reply,
+    process_meta_webhook_bg,
+    process_twilio_webhook_bg,
+)
 from .schemas import ClassifyRequest, ClassifyResponse, ReplyRequest, ReplyResponse, WebhookResponse
 
 logger = logging.getLogger(__name__)
@@ -41,6 +46,7 @@ router = APIRouter(prefix="/messaging", tags=["Messaging"])
 @router.post("/twilio-webhook/{user_id}", response_model=WebhookResponse, summary="Twilio inbound WhatsApp webhook")
 async def twilio_webhook(
     user_id: str,
+    bg_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     # Twilio sends form data (application/x-www-form-urlencoded)
     From: str = Form(..., description="Sender WhatsApp number e.g. whatsapp:+2348012345678"),
@@ -66,14 +72,16 @@ async def twilio_webhook(
         logger.warning(f"[twilio_webhook] Unknown user_id {user_id}")
         return WebhookResponse(status="unknown_user", from_number=sender_phone, label="", reply_queued=False)
 
-    return await handle_twilio_webhook(
-        db=db,
-        user=user,
+    bg_tasks.add_task(
+        process_twilio_webhook_bg,
+        user_id=user.id,
         sender_phone=sender_phone,
         sender_name=sender_name,
         message_text=Body,
         message_sid=MessageSid,
     )
+
+    return WebhookResponse(status="ok", from_number=sender_phone, label="", reply_queued=True)
 
 
 # ---------------------------------------------------------------------------
@@ -104,7 +112,11 @@ async def meta_webhook_verify(
 # ---------------------------------------------------------------------------
 
 @router.post("/webhook", response_model=WebhookResponse, summary="Meta inbound WhatsApp webhook")
-async def meta_webhook(request: Request, db: AsyncSession = Depends(get_db)):
+async def meta_webhook(
+    request: Request,
+    bg_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db)
+):
     """
     Receives inbound WhatsApp messages from Meta Cloud API.
     Extracts the message, runs AI pipeline, sends reply, saves to DB.
@@ -152,14 +164,16 @@ async def meta_webhook(request: Request, db: AsyncSession = Depends(get_db)):
         logger.warning("[webhook] No user found for phone_number_id %s", phone_number_id)
         return WebhookResponse(status="no_user", from_number=sender_phone, label="", reply_queued=False)
 
-    return await handle_meta_webhook(
-        db=db,
+    bg_tasks.add_task(
+        process_meta_webhook_bg,
+        user_id=user.id,
         sender_phone=sender_phone,
         sender_name=sender_name,
         message_text=message_text,
         wa_message_id=wa_message_id,
-        user=user,
     )
+
+    return WebhookResponse(status="ok", from_number=sender_phone, label="", reply_queued=True)
 
 
 # ---------------------------------------------------------------------------
