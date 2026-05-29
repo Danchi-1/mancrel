@@ -208,7 +208,7 @@ RESPONSE FORMAT
 # ---------------------------------------------------------------------------
 
 
-DEFAULT_MODEL = "google/gemma-2-9b-it:free"
+DEFAULT_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
 
 # Free model availability rotates — what's listed here may go offline.
 # Always check the live list before switching:

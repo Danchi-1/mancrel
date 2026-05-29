@@ -354,14 +354,11 @@ async def process_twilio_webhook_bg(
                     client = TwilioClient(twilio_sid, twilio_token)
                     # Use a thread pool to avoid blocking the async event loop with Twilio's sync client
                     import asyncio
-                    loop = asyncio.get_event_loop()
-                    await loop.run_in_executor(
-                        None,
-                        lambda: client.messages.create(
-                            from_=f"whatsapp:{twilio_number.replace('whatsapp:', '')}",
-                            to=f"whatsapp:{sender_phone.replace('whatsapp:', '')}",
-                            body="Just a moment while I pull up those details..."
-                        )
+                    await asyncio.to_thread(
+                        client.messages.create,
+                        from_=f"whatsapp:{twilio_number.replace('whatsapp:', '')}",
+                        to=f"whatsapp:{sender_phone.replace('whatsapp:', '')}",
+                        body="Just a moment while I pull up those details..."
                     )
                 except Exception as e:
                     logger.error("[twilio_webhook_bg] Failed to send loading message: %s", e)
@@ -414,14 +411,11 @@ async def process_twilio_webhook_bg(
             from twilio.rest import Client as TwilioClient
             client = TwilioClient(twilio_sid, twilio_token)
             import asyncio
-            loop = asyncio.get_event_loop()
-            sent = await loop.run_in_executor(
-                None,
-                lambda: client.messages.create(
-                    from_=f"whatsapp:{twilio_number.replace('whatsapp:', '')}",
-                    to=f"whatsapp:{sender_phone.replace('whatsapp:', '')}",
-                    body=reply_text,
-                )
+            sent = await asyncio.to_thread(
+                client.messages.create,
+                from_=f"whatsapp:{twilio_number.replace('whatsapp:', '')}",
+                to=f"whatsapp:{sender_phone.replace('whatsapp:', '')}",
+                body=reply_text,
             )
             reply_queued = True
             logger.info("[twilio_webhook] Reply sent via Twilio: %s", sent.sid)
