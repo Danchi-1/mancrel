@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, AlertTriangle, Users, LogOut, Briefcase, Inbox } from "lucide-react"
+import { LayoutDashboard, AlertTriangle, Users, LogOut, Briefcase, Inbox, Package, Megaphone, Blocks } from "lucide-react"
 import { Logo } from "./Logo"
 
 const menuItems = [
@@ -11,9 +11,9 @@ const menuItems = [
   { id: "deals", icon: Briefcase, label: "Deals" },
   { id: "escalations", icon: AlertTriangle, label: "Escalation" },
   { id: "customers", icon: Users, label: "Customers" },
-  { id: "catalogue", icon: Briefcase, label: "Catalogue" },
-  { id: "campaigns", icon: Inbox, label: "Campaigns" },
-  { id: "integrations", icon: LayoutDashboard, label: "Integrations" }, // Reusing LayoutDashboard icon, can change later
+  { id: "catalogue", icon: Package, label: "Catalogue" },
+  { id: "campaigns", icon: Megaphone, label: "Campaigns" },
+  { id: "integrations", icon: Blocks, label: "Integrations" },
 ]
 
 export function Sidebar({ isOpen, activeView, setActiveView, handleLogout }) {
