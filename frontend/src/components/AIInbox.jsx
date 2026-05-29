@@ -52,6 +52,9 @@ export default function AIInbox({ isMarketingPreview = false, isDashboard = fals
   const [messages, setMessages] = useState([])
   const [selectedMessage, setSelectedMessage] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [replyText, setReplyText] = useState('')
+  const [isSending, setIsSending] = useState(false)
+  const [sendResult, setSendResult] = useState(null)
 
   useEffect(() => {
     if (isMarketingPreview) {
@@ -74,6 +77,26 @@ export default function AIInbox({ isMarketingPreview = false, isDashboard = fals
     }
     fetchMessages();
   }, [isMarketingPreview]);
+
+  const handleSendReply = async () => {
+    if (!replyText.trim() || !selectedMessage) return;
+    
+    setIsSending(true);
+    setSendResult(null);
+    try {
+      await apiClient.post('/messaging/send-manual', {
+        to_phone: selectedMessage.sender_phone || selectedMessage.from,
+        message: replyText
+      });
+      setSendResult({ success: true, text: "Message sent!" });
+      setReplyText('');
+      setTimeout(() => setSendResult(null), 3000);
+    } catch (err) {
+      setSendResult({ success: false, text: "Failed to send message." });
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   const getSentimentColor = (sentiment) => {
     switch (sentiment) {
@@ -201,15 +224,42 @@ export default function AIInbox({ isMarketingPreview = false, isDashboard = fals
 
               <div className="flex gap-3">
                 <button className="btn-secondary">
-                  Reply
-                </button>
-                <button className="btn-secondary">
                   Forward
                 </button>
                 <button className="btn-secondary">
                   Archive
                 </button>
               </div>
+
+              {/* Manual Reply Box */}
+              {isDashboard && (
+                <div className="mt-6 border-t pt-6">
+                  <h4 className="text-sm font-bold text-gray-700 mb-2">Send Manual Reply (Overrides AI)</h4>
+                  <textarea
+                    rows="3"
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="Type your reply here..."
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#4F46E5] outline-none transition-shadow mb-2"
+                  />
+                  <div className="flex justify-between items-center">
+                    <div>
+                      {sendResult && (
+                        <span className={`text-sm ${sendResult.success ? 'text-green-600' : 'text-red-600'}`}>
+                          {sendResult.text}
+                        </span>
+                      )}
+                    </div>
+                    <button 
+                      onClick={handleSendReply}
+                      disabled={isSending || !replyText.trim()}
+                      className="px-6 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-lg transition-colors font-medium disabled:opacity-50"
+                    >
+                      {isSending ? "Sending..." : "Send"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* AI Suggestion Panel */}
@@ -245,11 +295,14 @@ export default function AIInbox({ isMarketingPreview = false, isDashboard = fals
 
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-3">
-                <button className="btn-primary">
+                <button 
+                  onClick={() => setReplyText(selectedMessage.aiSuggestion.text)}
+                  className="btn-primary"
+                >
                   <svg className="w-5 h-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Approve & Send
+                  Use Draft
                 </button>
                 <button className="btn-secondary">
                   <svg className="w-5 h-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
