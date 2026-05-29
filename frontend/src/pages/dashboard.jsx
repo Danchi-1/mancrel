@@ -22,9 +22,10 @@ export default function DashboardPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState(null)
+  const [stats, setStats] = useState({ total_contacts: 0, active_deals: 0, ai_interactions: 0 })
 
   useEffect(() => {
-    async function fetchUser() {
+    async function fetchUserAndStats() {
       try {
         const userData = await apiClient.get('/auth/me');
         
@@ -42,9 +43,18 @@ export default function DashboardPage() {
           industry_sector: userData.industry_sector,
           business_type: userData.business_type,
           phone: userData.phone,
-          whatsapp_connected: userData.whatsapp_connected
+          whatsapp_connected: userData.whatsapp_connected,
+          twilio_phone_number: userData.twilio_phone_number
         });
         setIsAuthenticated(true);
+        
+        try {
+          const statsData = await apiClient.get('/customers/stats');
+          setStats(statsData);
+        } catch (e) {
+          console.error("Failed to fetch stats", e);
+        }
+
       } catch (error) {
         console.error('Not authenticated', error);
         router.push('/signin');
@@ -52,7 +62,7 @@ export default function DashboardPage() {
         setLoading(false);
       }
     }
-    fetchUser();
+    fetchUserAndStats();
   }, [router]);
 
   async function handleLogout() {
@@ -142,15 +152,15 @@ export default function DashboardPage() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div className="bg-white p-6 rounded-xl border shadow-sm">
                       <h3 className="text-sm font-medium text-gray-500 mb-2">Total Contacts</h3>
-                      <p className="text-3xl font-bold text-gray-900">0</p>
+                      <p className="text-3xl font-bold text-gray-900">{stats.total_contacts}</p>
                     </div>
                     <div className="bg-white p-6 rounded-xl border shadow-sm">
                       <h3 className="text-sm font-medium text-gray-500 mb-2">Active Deals</h3>
-                      <p className="text-3xl font-bold text-gray-900">0</p>
+                      <p className="text-3xl font-bold text-gray-900">{stats.active_deals}</p>
                     </div>
                     <div className="bg-white p-6 rounded-xl border shadow-sm">
                       <h3 className="text-sm font-medium text-gray-500 mb-2">AI Interactions</h3>
-                      <p className="text-3xl font-bold text-gray-900">0</p>
+                      <p className="text-3xl font-bold text-gray-900">{stats.ai_interactions}</p>
                     </div>
                   </div>
                 </div>
