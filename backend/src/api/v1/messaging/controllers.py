@@ -342,7 +342,7 @@ async def process_twilio_webhook_bg(
         }
         for i in db_items
     ]
-    
+    try:
         # Define Twilio loading indicator
         async def on_tool_call():
             twilio_sid = user.twilio_account_sid or os.environ.get("TWILIO_ACCOUNT_SID")
