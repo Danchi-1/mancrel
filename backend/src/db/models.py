@@ -53,6 +53,7 @@ class Customer(Base):
     __tablename__ = "customers"
     
     id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id"), nullable=True, index=True)
     name = Column(String, nullable=False)
     email = Column(String, nullable=True)
     phone = Column(String, nullable=True)
@@ -62,6 +63,7 @@ class Deal(Base):
     __tablename__ = "deals"
     
     id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id"), nullable=True, index=True)
     company = Column(String, nullable=False)
     value = Column(Float, default=0.0)
     contact_name = Column(String, nullable=True)
@@ -73,6 +75,7 @@ class Escalation(Base):
     __tablename__ = "escalations"
     
     id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id"), nullable=True, index=True)
     customer_name = Column(String, nullable=False)
     issue_type = Column(String, nullable=False)
     channel = Column(String, nullable=False) # email, api, phone
