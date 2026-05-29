@@ -8,8 +8,10 @@ from db.session import get_db
 from db.models import User, CatalogueItem
 from api.v1.auth.deps import get_current_user
 from .schemas import CatalogueItemCreate, CatalogueItemUpdate, CatalogueItemResponse
+from .upload import router as upload_router
 
 router = APIRouter(prefix="/catalogue", tags=["Catalogue"])
+router.include_router(upload_router)
 
 MAX_CATALOGUE_ITEMS = 20
 
@@ -49,7 +51,8 @@ async def create_catalogue_item(
         price=payload.price,
         available=payload.available,
         description=payload.description,
-        sku=payload.sku
+        sku=payload.sku,
+        image_url=payload.image_url
     )
     db.add(new_item)
     await db.commit()

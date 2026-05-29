@@ -8,6 +8,7 @@ class CatalogueItemBase(BaseModel):
     available: bool = True
     description: Optional[str] = None
     sku: Optional[str] = None
+    image_url: Optional[str] = None
 
 class CatalogueItemCreate(CatalogueItemBase):
     pass
