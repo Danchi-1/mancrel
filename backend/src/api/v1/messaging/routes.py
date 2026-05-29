@@ -203,6 +203,7 @@ async def get_inbox(
             "company": msg.company or "WhatsApp Customer",
             "subject": msg.subject or "Message",
             "preview": msg.preview or msg.full_text[:80],
+            "full_text": msg.full_text,
             "time": msg.time or msg.created_at.strftime("%I:%M %p"),
             "unread": msg.unread,
             "sentiment": msg.sentiment,

@@ -208,7 +208,7 @@ RESPONSE FORMAT
 # ---------------------------------------------------------------------------
 
 
-DEFAULT_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
+DEFAULT_MODEL = "google/gemma-2-9b-it:free"
 
 # Free model availability rotates — what's listed here may go offline.
 # Always check the live list before switching:
@@ -367,7 +367,7 @@ async def generate_reply(
             model=model_name,
             messages=messages,
             tools=tools,
-            max_tokens=250,
+            max_tokens=1024,
             temperature=0.3,
         )
     except Exception as e:
@@ -410,7 +410,7 @@ async def generate_reply(
             response = await client.chat.completions.create(
                 model=model_name,
                 messages=messages,
-                max_tokens=250,
+                max_tokens=1024,
                 temperature=0.3,
             )
             choice = response.choices[0]
@@ -455,14 +455,14 @@ async def generate_reply(
             response = await client.chat.completions.create(
                 model=model_name,
                 messages=messages,
-                max_tokens=250,
+                max_tokens=1024,
                 temperature=0.3,
             )
             choice = response.choices[0]
 
     raw_reply_text = choice.message.content.strip() if choice.message.content else ""
-    # Strip <think> blocks
-    reply_text = re.sub(r'<think>.*?</think>', '', raw_reply_text, flags=re.DOTALL).strip()
+    # Strip <think> blocks (even if unclosed)
+    reply_text = re.sub(r'<think>.*?(</think>|$)', '', raw_reply_text, flags=re.DOTALL).strip()
     
     # Fallback if the model only output thoughts or an empty string
     if not reply_text:

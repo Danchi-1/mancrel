@@ -358,8 +358,8 @@ async def process_twilio_webhook_bg(
                     await loop.run_in_executor(
                         None,
                         lambda: client.messages.create(
-                            from_=twilio_number,
-                            to=f"whatsapp:{sender_phone}",
+                            from_=f"whatsapp:{twilio_number.replace('whatsapp:', '')}",
+                            to=f"whatsapp:{sender_phone.replace('whatsapp:', '')}",
                             body="Just a moment while I pull up those details..."
                         )
                     )
@@ -418,8 +418,8 @@ async def process_twilio_webhook_bg(
             sent = await loop.run_in_executor(
                 None,
                 lambda: client.messages.create(
-                    from_=twilio_number,
-                    to=f"whatsapp:{sender_phone}",
+                    from_=f"whatsapp:{twilio_number.replace('whatsapp:', '')}",
+                    to=f"whatsapp:{sender_phone.replace('whatsapp:', '')}",
                     body=reply_text,
                 )
             )
