@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Send, Users, Megaphone, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Send, Users, Megaphone, Loader2, CheckSquare } from 'lucide-react';
 import { apiClient } from '@/lib/apiClient';
 
 export function CampaignsContent({ user }) {
@@ -7,17 +7,49 @@ export function CampaignsContent({ user }) {
   const [phones, setPhones] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  
+  const [customers, setCustomers] = useState([]);
+  const [selectedCustomers, setSelectedCustomers] = useState(new Set());
+  const [loadingCustomers, setLoadingCustomers] = useState(true);
+
+  useEffect(() => {
+    async function fetchCustomers() {
+      try {
+        const data = await apiClient.get('/customers');
+        setCustomers(data);
+      } catch (err) {
+        console.error("Failed to fetch customers for campaigns", err);
+      } finally {
+        setLoadingCustomers(false);
+      }
+    }
+    fetchCustomers();
+  }, []);
+
+  const toggleCustomer = (phone) => {
+    if (!phone) return;
+    const newSet = new Set(selectedCustomers);
+    if (newSet.has(phone)) {
+      newSet.delete(phone);
+    } else {
+      newSet.add(phone);
+    }
+    setSelectedCustomers(newSet);
+  };
 
   const handleBroadcast = async (e) => {
     e.preventDefault();
     setLoading(true);
     setResult(null);
 
-    // Parse phones (comma separated or newlines)
-    const phoneList = phones.split(/[\n,]+/).map(p => p.trim()).filter(p => p);
+    // Parse manual phones
+    const manualList = phones.split(/[\n,]+/).map(p => p.trim()).filter(p => p);
+    
+    // Combine manual list with selected customers
+    const phoneList = [...new Set([...manualList, ...Array.from(selectedCustomers)])];
 
     if (phoneList.length === 0) {
-      setResult({ error: "Please enter at least one phone number." });
+      setResult({ error: "Please select at least one customer or enter a manual phone number." });
       setLoading(false);
       return;
     }
@@ -53,17 +85,50 @@ export function CampaignsContent({ user }) {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
               <Users className="w-4 h-4 text-gray-400" />
-              Recipient Phone Numbers
+              Select Known Customers
+            </label>
+            <div className="border rounded-lg p-4 bg-gray-50 max-h-48 overflow-y-auto mb-4">
+              {loadingCustomers ? (
+                <div className="flex justify-center p-4"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
+              ) : customers.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-2">No customers found in database.</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {customers.map((c) => {
+                    const phone = c.phone;
+                    if (!phone) return null;
+                    const isSelected = selectedCustomers.has(phone);
+                    return (
+                      <label key={c.id} className={`flex items-center gap-3 p-2 rounded border cursor-pointer transition-colors ${isSelected ? 'bg-indigo-50 border-indigo-200' : 'bg-white hover:bg-gray-100'}`}>
+                        <input 
+                          type="checkbox" 
+                          className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                          checked={isSelected}
+                          onChange={() => toggleCustomer(phone)}
+                        />
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-gray-900">{c.name}</span>
+                          <span className="text-xs text-gray-500">{phone}</span>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+              <Megaphone className="w-4 h-4 text-gray-400" />
+              Manual Custom Numbers (Optional)
             </label>
             <textarea
-              rows="3"
-              required
+              rows="2"
               value={phones}
               onChange={(e) => setPhones(e.target.value)}
               placeholder="+1234567890, +0987654321..."
               className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#4F46E5] outline-none transition-shadow"
             />
-            <p className="text-xs text-gray-500 mt-1">Enter numbers separated by commas or new lines. Include country code.</p>
+            <p className="text-xs text-gray-500 mt-1">Enter any numbers not in your database, separated by commas.</p>
           </div>
 
           <div>
@@ -77,8 +142,8 @@ export function CampaignsContent({ user }) {
               className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#4F46E5] outline-none transition-shadow"
             />
             <div className="mt-2 p-3 bg-blue-50 text-blue-800 rounded-lg text-sm flex gap-2">
-              <span className="font-bold">Tip:</span>
-              <span>If you are in the Twilio Sandbox, recipients MUST have already texted your 'join code' before you can broadcast to them.</span>
+              <span className="font-bold">Twilio Sandbox Tip:</span>
+              <span>Because you are using the Twilio trial sandbox, you cannot broadcast to random numbers. Your recipients MUST first text the word <strong>"join &lt;your-sandbox-word&gt;"</strong> to your Twilio number <strong>{user?.twilio_phone_number || "[Your Twilio Number]"}</strong> to opt-in before they will receive these broadcasts!</span>
             </div>
           </div>
 
