@@ -135,8 +135,8 @@ export default function AIInbox({ isMarketingPreview = false, isDashboard = fals
         {/* Inbox Interface */}
         <div className={`grid lg:grid-cols-5 gap-6 w-full ${isDashboard ? 'h-full flex-1 min-h-0 p-4 md:p-6' : ''}`}>
           {/* Message List */}
-          <div className="lg:col-span-2 card overflow-hidden w-full">
-            <div className="p-4 border-b border-neutral-100">
+          <div className="lg:col-span-2 card flex flex-col overflow-hidden w-full max-h-[calc(100vh-150px)]">
+            <div className="p-4 border-b border-neutral-100 shrink-0">
               <div className="relative">
                 <input
                   type="text"
@@ -150,7 +150,7 @@ export default function AIInbox({ isMarketingPreview = false, isDashboard = fals
               </div>
             </div>
 
-            <div className="divide-y divide-neutral-100">
+            <div className="flex-1 overflow-y-auto divide-y divide-neutral-100 min-h-0">
               {messages.length === 0 ? (
                  <div className="p-4 text-center text-neutral-500">No messages found.</div>
               ) : messages.map((message) => (
@@ -193,7 +193,7 @@ export default function AIInbox({ isMarketingPreview = false, isDashboard = fals
           </div>
 
           {/* Message Detail & AI Suggestion */}
-          <div className="lg:col-span-3 space-y-6 w-full overflow-hidden">
+          <div className="lg:col-span-3 space-y-6 w-full flex flex-col overflow-y-auto max-h-[calc(100vh-150px)]">
             {!selectedMessage ? (
               <div className="card p-6 flex items-center justify-center h-64 text-neutral-500">
                 Select a message to view details
@@ -216,10 +216,8 @@ export default function AIInbox({ isMarketingPreview = false, isDashboard = fals
                 {selectedMessage.subject}
               </h4>
 
-              <p className="text-neutral-700 leading-relaxed mb-6">
-                {selectedMessage.preview} Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
-                Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
-                Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
+              <p className="text-neutral-700 leading-relaxed mb-6 whitespace-pre-wrap">
+                {selectedMessage.full_text || selectedMessage.preview}
               </p>
 
               <div className="flex gap-3">
