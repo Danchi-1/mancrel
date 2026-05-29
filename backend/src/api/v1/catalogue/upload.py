@@ -14,9 +14,12 @@ async def upload_image(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="CLOUDINARY_URL environment variable is not configured.")
         
     try:
+        # Read file bytes for reliability
+        contents = await file.read()
+        
         # Upload directly to Cloudinary
         result = cloudinary.uploader.upload(
-            file.file,
+            contents,
             folder="mancrel_catalogue", # Organizes images in a folder
             resource_type="image"
         )
