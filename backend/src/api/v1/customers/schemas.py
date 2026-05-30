@@ -1,11 +1,11 @@
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 
 class CustomerBase(BaseModel):
     name: str
     company: Optional[str] = None
-    email: str
+    email: Optional[str] = None
     phone: Optional[str] = None
     status: str = "Active"
     total_value: float = 0.0
@@ -15,7 +15,10 @@ class CustomerCreate(CustomerBase):
 
 class CustomerResponse(CustomerBase):
     id: str
-    date: datetime
+    created_at: datetime
+    date: Optional[datetime] = Field(default=None, alias="created_at")
 
     class Config:
         from_attributes = True
+        populate_by_name = True
+
