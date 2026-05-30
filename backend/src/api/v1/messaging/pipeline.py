@@ -274,7 +274,7 @@ async def generate_reply(
         model_used  : str   — which model produced the reply
         label       : str   — echoes back the classification label
     """
-    from openai import OpenAI
+    from openai import AsyncOpenAI
 
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
@@ -285,7 +285,7 @@ async def generate_reply(
 
     model_name = os.environ.get("OPENROUTER_MODEL", DEFAULT_MODEL)
 
-    client = OpenAI(
+    client = AsyncOpenAI(
         api_key=api_key,
         base_url=OPENROUTER_BASE_URL,
         default_headers={
