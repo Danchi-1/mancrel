@@ -327,7 +327,7 @@ export function CatalogueContent({ user }) {
                       type="text" 
                       value={formData.price}
                       onChange={e => setFormData({...formData, price: e.target.value})}
-                      placeholder="e.g. $49.99 or Contact Us"
+                      placeholder="e.g. ₦4,500 or Contact Us"
                       className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#4F46E5] outline-none transition-shadow"
                     />
                   </div>
