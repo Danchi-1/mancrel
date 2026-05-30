@@ -50,7 +50,7 @@ async def twilio_webhook(
     db: AsyncSession = Depends(get_db),
     # Twilio sends form data (application/x-www-form-urlencoded)
     From: str = Form(..., description="Sender WhatsApp number e.g. whatsapp:+2348012345678"),
-    Body: str = Form(..., description="Raw message text"),
+    Body: str = Form("", description="Raw message text"),
     ProfileName: str = Form(None),
     MessageSid: str = Form(None),  # Twilio's unique message ID (used for dedup)
     WaId: str = Form(None),        # Sender phone without prefix/country formatting
@@ -59,7 +59,9 @@ async def twilio_webhook(
 ) -> WebhookResponse:
     """Receives inbound WhatsApp messages from Twilio sandbox/production."""
     if not Body.strip():
-        raise HTTPException(status_code=400, detail="Empty message body.")
+        # Do not throw a 400, otherwise Twilio logs a webhook error.
+        # Just ignore empty messages (e.g. image-only) gracefully for now.
+        return WebhookResponse(status="ignored", from_number=From.replace("whatsapp:", ""), label="empty_body", reply_queued=False)
 
     # Strip Twilio's "whatsapp:" prefix to get a clean phone number
     sender_phone = From.replace("whatsapp:", "").strip()

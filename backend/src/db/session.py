@@ -11,6 +11,8 @@ from core.config import settings
 engine = create_async_engine(
     settings.database_url_async,
     echo=False,
+    pool_pre_ping=True,  # Prevent InterfaceError from dropped connections
+    pool_recycle=300,    # Recycle connections every 5 minutes (useful for Neon)
     # SQLite-specific config, ignored by Postgres
     connect_args={"check_same_thread": False} if "sqlite" in settings.database_url_async else {}
 )
