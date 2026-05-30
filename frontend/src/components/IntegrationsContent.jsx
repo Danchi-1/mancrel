@@ -11,7 +11,7 @@ export function IntegrationsContent({ user, setUser }) {
   useEffect(() => {
     if (user) {
       const host = window.location.hostname === 'localhost' 
-        ? 'https://mancrel-api.onrender.com' 
+        ? 'https://mancrel.onrender.com' 
         : 'https://mancrel.onrender.com';
       setWebhookUrl(`${host}/api/v1/messaging/twilio-webhook/${user.id}`);
     }

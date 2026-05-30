@@ -89,7 +89,7 @@ export function CatalogueContent({ user }) {
       // Temporary endpoint URL mapping
       const host = window.location.hostname === 'localhost' 
         ? 'http://localhost:8000/api/v1' 
-        : 'https://mancrel-api.onrender.com/api/v1';
+        : 'https://mancrel.onrender.com/api/v1';
         
       const response = await fetch(`${host}/catalogue/upload`, {
         method: 'POST',
