@@ -22,7 +22,7 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from db.models import Message, User, CatalogueItem
+from db.models import Message, User, CatalogueItem, Deal
 from .pipeline import generate_reply
 from .schemas import (
     ClassifyRequest,
@@ -197,6 +197,27 @@ async def process_meta_webhook_bg(
         )
         reply_text = result["reply"]
         confidence = result.get("confidence", 1.0)
+
+        # Create deal if sales intent
+        if label == "sales_intent":
+            existing_deal = await db.execute(
+                select(Deal).where(
+                    Deal.user_id == user.id,
+                    Deal.contact == sender_name,
+                    Deal.status.notin_(["Closed Won", "Closed Lost"])
+                )
+            )
+            if not existing_deal.scalars().first():
+                new_deal = Deal(
+                    user_id=user.id,
+                    company=sender_name or sender_phone,
+                    contact=sender_name or sender_phone,
+                    value=0.0,
+                    probability=20.0,
+                    status="prospect"
+                )
+                db.add(new_deal)
+                # We do not need to explicitly flush here; it will commit at the end.
 
         # 5. Save inbound message
         now_str = (datetime.utcnow() + timedelta(hours=1)).strftime("%I:%M %p")
@@ -406,6 +427,26 @@ async def process_twilio_webhook_bg(
             logger.error("[twilio_webhook] AI generation failed: %s", e)
             reply_text = "I'm sorry, I'm having trouble connecting to my AI brain right now. Please try again later!"
             confidence = 0.0
+
+        # Create deal if sales intent
+        if label == "sales_intent":
+            existing_deal = await db.execute(
+                select(Deal).where(
+                    Deal.user_id == user.id,
+                    Deal.contact == sender_name,
+                    Deal.status.notin_(["Closed Won", "Closed Lost"])
+                )
+            )
+            if not existing_deal.scalars().first():
+                new_deal = Deal(
+                    user_id=user.id,
+                    company=sender_name or sender_phone,
+                    contact=sender_name or sender_phone,
+                    value=0.0,
+                    probability=20.0,
+                    status="prospect"
+                )
+                db.add(new_deal)
 
         # 4. Save inbound message
         now_str = (datetime.utcnow() + timedelta(hours=1)).strftime("%I:%M %p")
