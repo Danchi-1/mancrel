@@ -232,6 +232,8 @@ async def generate_reply(
     classification: str,
     db: AsyncSession = None,
     user_id: str = None,
+    business_name: str = "this business",
+    customer_name: str = "the customer",
     catalogue_items: Optional[list[dict]] = None,
     conversation_history: Optional[list[dict]] = None,
     on_tool_call: Optional[Callable[[], Awaitable[None]]] = None,
@@ -307,6 +309,9 @@ async def generate_reply(
         f"{catalogue_block}\n\n"
         f"[MESSAGE CLASSIFICATION]\n"
         f"{classification}\n\n"
+        f"Context:\n"
+        f"You are speaking on behalf of: {business_name}\n"
+        f"The customer's name is: {customer_name}\n\n"
         f"[CUSTOMER MESSAGE]\n"
         f"{message}"
     )
