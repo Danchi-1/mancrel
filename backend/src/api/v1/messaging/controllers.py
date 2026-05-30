@@ -15,7 +15,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import httpx
 from fastapi import HTTPException
@@ -199,7 +199,7 @@ async def process_meta_webhook_bg(
         confidence = result.get("confidence", 1.0)
 
         # 5. Save inbound message
-        now_str = datetime.utcnow().strftime("%I:%M %p")
+        now_str = (datetime.utcnow() + timedelta(hours=1)).strftime("%I:%M %p")
         inbound_msg = Message(
             user_id=user.id,
             sender_phone=sender_phone,
@@ -408,7 +408,7 @@ async def process_twilio_webhook_bg(
             confidence = 0.0
 
         # 4. Save inbound message
-        now_str = datetime.utcnow().strftime("%I:%M %p")
+        now_str = (datetime.utcnow() + timedelta(hours=1)).strftime("%I:%M %p")
         inbound_msg = Message(
             user_id=user.id,
             sender_phone=sender_phone,
