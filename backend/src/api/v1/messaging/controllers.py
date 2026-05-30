@@ -269,13 +269,13 @@ async def process_meta_webhook_bg(
     # Private helpers
     # ---------------------------------------------------------------------------
 
-    async def _safe_classify(message: str) -> str:
-        from .pipeline import classify
-        try:
-            return str(await classify(message))
-        except Exception as e:
-            logger.error("[_safe_classify] Fallback triggered due to error: %s", e)
-            # Final safety net just in case the pipeline's internal fallback also fails
+async def _safe_classify(message: str) -> str:
+    from .pipeline import classify
+    try:
+        return str(await classify(message))
+    except Exception as e:
+        logger.error("[_safe_classify] Fallback triggered due to error: %s", e)
+        # Final safety net just in case the pipeline's internal fallback also fails
         text = message.lower()
         if any(w in text for w in ["price", "cost", "how much", "buy", "order", "available"]):
             return "sales_intent"
