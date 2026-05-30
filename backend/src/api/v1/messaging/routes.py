@@ -46,18 +46,25 @@ router = APIRouter(prefix="/messaging", tags=["Messaging"])
 @router.post("/twilio-webhook/{user_id}", response_model=WebhookResponse, summary="Twilio inbound WhatsApp webhook")
 async def twilio_webhook(
     user_id: str,
+    request: Request,
     bg_tasks: BackgroundTasks,
-    db: AsyncSession = Depends(get_db),
-    # Twilio sends form data (application/x-www-form-urlencoded)
-    From: str = Form(..., description="Sender WhatsApp number e.g. whatsapp:+2348012345678"),
-    Body: str = Form("", description="Raw message text"),
-    ProfileName: Optional[str] = Form(None),
-    MessageSid: Optional[str] = Form(None),  # Twilio's unique message ID (used for dedup)
-    WaId: Optional[str] = Form(None),        # Sender phone without prefix/country formatting
-    AccountSid: Optional[str] = Form(None),
-    NumMedia: str = Form("0"),
+    db: AsyncSession = Depends(get_db)
 ) -> WebhookResponse:
     """Receives inbound WhatsApp messages from Twilio sandbox/production."""
+    try:
+        form_data = await request.form()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid form data")
+        
+    From = form_data.get("From", "")
+    Body = form_data.get("Body", "")
+    ProfileName = form_data.get("ProfileName", "")
+    MessageSid = form_data.get("MessageSid", "")
+    
+    if not From:
+        logger.error("[twilio_webhook] Missing 'From' in payload")
+        raise HTTPException(status_code=400, detail="Missing From")
+
     if not Body.strip():
         # Do not throw a 400, otherwise Twilio logs a webhook error.
         # Just ignore empty messages (e.g. image-only) gracefully for now.
