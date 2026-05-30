@@ -51,10 +51,10 @@ async def twilio_webhook(
     # Twilio sends form data (application/x-www-form-urlencoded)
     From: str = Form(..., description="Sender WhatsApp number e.g. whatsapp:+2348012345678"),
     Body: str = Form("", description="Raw message text"),
-    ProfileName: str = Form(None),
-    MessageSid: str = Form(None),  # Twilio's unique message ID (used for dedup)
-    WaId: str = Form(None),        # Sender phone without prefix/country formatting
-    AccountSid: str = Form(None),
+    ProfileName: Optional[str] = Form(None),
+    MessageSid: Optional[str] = Form(None),  # Twilio's unique message ID (used for dedup)
+    WaId: Optional[str] = Form(None),        # Sender phone without prefix/country formatting
+    AccountSid: Optional[str] = Form(None),
     NumMedia: str = Form("0"),
 ) -> WebhookResponse:
     """Receives inbound WhatsApp messages from Twilio sandbox/production."""
