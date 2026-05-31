@@ -87,7 +87,7 @@ Customer message:
 """
     try:
         response = await client.chat.completions.create(
-            model=model_to_use,
+            model=model_name,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.0,
             max_tokens=20,
@@ -368,6 +368,10 @@ async def generate_reply(
             }
         }
     ]
+
+    model_to_use = model_name
+    if media_url:
+        model_to_use = "google/gemini-2.5-flash"
 
     try:
         response = await client.chat.completions.create(
