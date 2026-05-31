@@ -87,7 +87,7 @@ Customer message:
 """
     try:
         response = await client.chat.completions.create(
-            model=model_name,
+            model=model_to_use,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.0,
             max_tokens=20,
@@ -237,6 +237,8 @@ async def generate_reply(
     catalogue_items: Optional[list[dict]] = None,
     conversation_history: Optional[list[dict]] = None,
     on_tool_call: Optional[Callable[[], Awaitable[None]]] = None,
+    media_url: str = "",
+    payment_details: Optional[str] = None,
 ) -> dict:
     """
     Generate a reply draft for an incoming customer message.
@@ -369,7 +371,7 @@ async def generate_reply(
 
     try:
         response = await client.chat.completions.create(
-            model=model_name,
+            model=model_to_use,
             messages=messages,
             tools=tools,
             max_tokens=1024,
@@ -412,8 +414,39 @@ async def generate_reply(
                 "content": tool_result
             })
             
+        elif tool_call.function.name == "notify_owner_receipt" and db and user_id:
+            logger.info("[pipeline] AI invoked notify_owner_receipt.")
+            if on_tool_call:
+                try: await on_tool_call()
+                except Exception as e: logger.error(e)
+                
+            from api.v1.messaging.email_service import send_receipt_verification_alert
+            user_res = await db.execute(select(User).where(User.id == user_id))
+            user_obj = user_res.scalar_one_or_none()
+            if user_obj:
+                import asyncio
+                if user_obj.email:
+                    asyncio.create_task(send_receipt_verification_alert(user_obj.email, customer_name))
+                if user_obj.phone and user_obj.twilio_account_sid and user_obj.twilio_auth_token:
+                    try:
+                        from twilio.rest import Client
+                        tc = Client(user_obj.twilio_account_sid, user_obj.twilio_auth_token)
+                        to_num = user_obj.phone if user_obj.phone.startswith("+") else "+" + user_obj.phone
+                        from_num = f"whatsapp:{user_obj.twilio_phone_number.replace('whatsapp:', '')}"
+                        to_num_wa = f"whatsapp:{to_num.replace('whatsapp:', '')}"
+                        asyncio.to_thread(
+                            tc.messages.create,
+                            from_=from_num,
+                            to=to_num_wa,
+                            body=f"Action Required: {customer_name} has submitted a payment receipt. Please verify it in your dashboard."
+                        )
+                    except Exception as e:
+                        logger.error(e)
+            tool_result = "Owner notified to verify receipt."
+            messages.append({"role": "tool", "tool_call_id": tool_call.id, "name": tool_call.function.name, "content": tool_result})
+            
             response = await client.chat.completions.create(
-                model=model_name,
+                model=model_to_use,
                 messages=messages,
                 max_tokens=1024,
                 temperature=0.3,
@@ -458,7 +491,7 @@ async def generate_reply(
             })
             
             response = await client.chat.completions.create(
-                model=model_name,
+                model=model_to_use,
                 messages=messages,
                 max_tokens=1024,
                 temperature=0.3,

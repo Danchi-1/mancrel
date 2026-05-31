@@ -73,3 +73,29 @@ async def send_escalation_alert(email: EmailStr, customer_name: str, issue_type:
         await fm.send_message(message)
     except Exception as e:
         logger.error(f"Failed to send escalation email: {e}")
+
+async def send_receipt_verification_alert(email: str, customer_name: str):
+    """Send an urgent email to the business owner to verify a receipt."""
+    if not os.environ.get("MAIL_USERNAME"):
+        logger.warning(f"Email not configured. Skipping receipt alert to {email}.")
+        return
+
+    html = f"""
+    <h2>Payment Receipt Uploaded</h2>
+    <p>Your customer, <b>{customer_name}</b>, has just uploaded an image (receipt) to verify their payment.</p>
+    <p>Please log in to your Mancrel dashboard, navigate to the AI Inbox to view the receipt, and verify the payment. Once verified, you can close their deal.</p>
+    """
+    
+    from fastapi_mail import MessageSchema, MessageType, FastMail
+    message = MessageSchema(
+        subject=f"Action Required: Receipt uploaded by {customer_name}",
+        recipients=[email],
+        body=html,
+        subtype=MessageType.html
+    )
+    
+    try:
+        fm = FastMail(get_email_config())
+        await fm.send_message(message)
+    except Exception as e:
+        logger.error(f"Failed to send receipt alert email: {e}")

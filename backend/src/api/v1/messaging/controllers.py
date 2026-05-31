@@ -327,6 +327,7 @@ async def process_twilio_webhook_bg(
     sender_name: str,
     message_text: str,
     message_sid: str | None,
+    media_url: str = "",
 ):
     """
     Process an inbound Twilio WhatsApp message in the background.
@@ -420,6 +421,8 @@ async def process_twilio_webhook_bg(
                 catalogue_items=items,
                 conversation_history=conversation_history,
                 on_tool_call=on_tool_call,
+                media_url=media_url,
+                payment_details=user.payment_details,
             )
             reply_text = result["reply"]
             confidence = result.get("confidence", 1.0)

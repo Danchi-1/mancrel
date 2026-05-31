@@ -65,9 +65,12 @@ async def twilio_webhook(
         logger.error("[twilio_webhook] Missing 'From' in payload")
         raise HTTPException(status_code=400, detail="Missing From")
 
-    if not Body.strip():
+    NumMedia = int(form_data.get("NumMedia", 0))
+    media_url = form_data.get("MediaUrl0", "") if NumMedia > 0 else ""
+
+    if not Body.strip() and not media_url:
         # Do not throw a 400, otherwise Twilio logs a webhook error.
-        # Just ignore empty messages (e.g. image-only) gracefully for now.
+        # Just ignore empty messages gracefully for now.
         return WebhookResponse(status="ignored", from_number=From.replace("whatsapp:", ""), label="empty_body", reply_queued=False)
 
     # Strip Twilio's "whatsapp:" prefix to get a clean phone number
@@ -88,6 +91,7 @@ async def twilio_webhook(
         sender_name=sender_name,
         message_text=Body,
         message_sid=MessageSid,
+        media_url=media_url,
     )
 
     return WebhookResponse(status="ok", from_number=sender_phone, label="", reply_queued=True)
