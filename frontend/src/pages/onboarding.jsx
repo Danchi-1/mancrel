@@ -9,6 +9,7 @@ export default function OnboardingPage() {
     business_name: '',
     industry_sector: '',
     business_type: '',
+    payment_details: '',
     phone: '',
   })
   const [loading, setLoading] = useState(false)
@@ -28,6 +29,7 @@ export default function OnboardingPage() {
           business_name: user.business_name?.endsWith("'s Business") ? '' : (user.business_name || ''),
           industry_sector: user.industry_sector === 'Other' ? '' : (user.industry_sector || ''),
           business_type: user.business_type === 'Startup' ? '' : (user.business_type || ''),
+          payment_details: user.payment_details || '',
           phone: user.phone || '',
         }))
       } catch (err) {
@@ -172,6 +174,24 @@ export default function OnboardingPage() {
                     <option key={opt} value={opt}>{opt}</option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="payment_details" className="block text-sm font-medium text-gray-700">
+                Payment Details (Bank Account for Customers)
+              </label>
+              <div className="mt-1">
+                <textarea
+                  id="payment_details"
+                  name="payment_details"
+                  rows={3}
+                  value={formData.payment_details}
+                  onChange={handleChange}
+                  className="input-field"
+                  placeholder="e.g. Bank: Zenith Bank, Acct Name: Acme Corp, Acct No: 1234567890"
+                />
+                <p className="mt-1 text-xs text-gray-500">The AI will share this with customers who are ready to pay.</p>
               </div>
             </div>
 
