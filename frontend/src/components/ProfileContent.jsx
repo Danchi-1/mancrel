@@ -56,6 +56,10 @@ export function ProfileContent({ user }) {
                 <label className="block text-sm font-medium text-gray-500 mb-1">Phone Number</label>
                 <div className="text-gray-900 font-medium">{user?.phone || "Not provided"}</div>
               </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-500 mb-1">Payment Details</label>
+                <div className="text-gray-900 font-medium whitespace-pre-wrap bg-gray-50 p-3 rounded-lg border border-gray-100">{user?.payment_details || "No bank details provided."}</div>
+              </div>
             </div>
           </div>
           
