@@ -24,6 +24,7 @@ class User(Base):
     business_name = Column(String, nullable=True)
     industry_sector = Column(String, nullable=True)
     business_type = Column(String, nullable=True)
+    payment_details = Column(String, nullable=True)
     
     # Flags
     is_active = Column(Boolean, default=True)
