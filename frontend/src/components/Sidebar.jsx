@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, AlertTriangle, Users, LogOut, Briefcase, Inbox, Package, Megaphone, Blocks } from "lucide-react"
+import { LayoutDashboard, AlertTriangle, Users, LogOut, Briefcase, Inbox, Package, Megaphone, Blocks, Smartphone } from "lucide-react"
 import { Logo } from "./Logo"
 
 const menuItems = [
@@ -13,6 +13,7 @@ const menuItems = [
   { id: "customers", icon: Users, label: "Customers" },
   { id: "catalogue", icon: Package, label: "Catalogue" },
   { id: "campaigns", icon: Megaphone, label: "Campaigns" },
+  { id: "status_links", icon: Smartphone, label: "Status Links" },
   { id: "integrations", icon: Blocks, label: "Integrations" },
 ]
 
