@@ -42,7 +42,7 @@ from typing import Optional, Callable, Awaitable
 logger = logging.getLogger(__name__)
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-DEFAULT_CLASSIFY_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
+DEFAULT_CLASSIFY_MODEL = "google/gemini-2.5-flash"
 
 async def classify(text: str) -> str:
     """

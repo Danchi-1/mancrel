@@ -436,7 +436,7 @@ async def process_twilio_webhook_bg(
             existing_deal = await db.execute(
                 select(Deal).where(
                     Deal.user_id == user.id,
-                    Deal.contact == sender_name,
+                    Deal.contact_name == sender_name,
                     Deal.status.notin_(["Closed Won", "Closed Lost"])
                 )
             )
@@ -444,7 +444,7 @@ async def process_twilio_webhook_bg(
                 new_deal = Deal(
                     user_id=user.id,
                     company=sender_name or sender_phone,
-                    contact=sender_name or sender_phone,
+                    contact_name=sender_name or sender_phone,
                     value=0.0,
                     probability=20.0,
                     status="prospect"
