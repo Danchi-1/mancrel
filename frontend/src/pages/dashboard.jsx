@@ -44,7 +44,8 @@ export default function DashboardPage() {
           business_type: userData.business_type,
           phone: userData.phone,
           whatsapp_connected: userData.whatsapp_connected,
-          twilio_phone_number: userData.twilio_phone_number
+          twilio_phone_number: userData.twilio_phone_number,
+          payment_details: userData.payment_details
         });
         setIsAuthenticated(true);
         
