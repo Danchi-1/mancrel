@@ -12,6 +12,7 @@ import { ProfileContent } from "@/components/ProfileContent"
 import { IntegrationsContent } from "@/components/IntegrationsContent"
 import { CatalogueContent } from "@/components/CatalogueContent"
 import { CampaignsContent } from "@/components/CampaignsContent"
+import { StatusLinksGuide } from "@/components/StatusLinksGuide"
 import { apiClient } from "@/lib/apiClient"
 import { ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react"
 
@@ -173,6 +174,7 @@ export default function DashboardPage() {
               {activeView === "profile" && <ProfileContent user={user} />}
               {activeView === "catalogue" && <CatalogueContent user={user} />}
               {activeView === "campaigns" && <CampaignsContent user={user} />}
+              {activeView === "status_links" && <StatusLinksGuide user={user} />}
               {activeView === "integrations" && <IntegrationsContent user={user} setUser={setUser} />}
           </div>
         </main>
