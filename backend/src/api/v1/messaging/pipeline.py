@@ -181,6 +181,12 @@ Rules you must follow WITHOUT EXCEPTION:
 5. If NO catalogue is provided (it will say "No catalogue items provided"),
    do not guess at prices or availability — acknowledge and offer to help.
 
+PAYMENT RULES (CRITICAL)
+---------------------------------------------------------
+1. If the customer wants to make a payment, you MUST provide the exact BUSINESS PAYMENT DETAILS found in the context below.
+2. NEVER use generic templates or placeholders like "[Your bank name]", "[Account Name]", or "[Business Name]". ONLY output the exact numbers and names provided in the context.
+3. If the context says "BUSINESS PAYMENT DETAILS: None set.", you MUST NOT ask them to pay. Instead, use the create_escalation tool with issue_type 'Missing Payment Details' and tell the customer you will look it up and a human will get back to them shortly.
+
 TONE RULES (based on message classification)
 ---------------------------------------------
 polite_greeting           → Warm, brief, professional. Acknowledge and invite
@@ -306,6 +312,7 @@ async def generate_reply(
     # The user-facing message includes the catalogue so the LLM sees it
     # in the same turn as the customer question — better than system prompt
     # injection because it keeps the catalogue close to the question
+    logger.info(f"[pipeline] Injected payment_details: {payment_details}")
     user_content = (
         f"[CATALOGUE BLOCK]\n"
         f"{catalogue_block}\n\n"
@@ -318,13 +325,30 @@ async def generate_reply(
         f"{message}"
     )
 
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    dynamic_prompt = SYSTEM_PROMPT
+    if payment_details:
+        dynamic_prompt += f"\nBUSINESS PAYMENT DETAILS: {payment_details}\n"
+        dynamic_prompt += "Rule: If the customer wants to make a payment, provide these payment details.\n"
+    else:
+        dynamic_prompt += "\nBUSINESS PAYMENT DETAILS: None set.\n"
+        dynamic_prompt += "Rule: If the customer asks to pay, use the create_escalation tool with issue_type 'Missing Payment Details' and tell the customer we'll get back to them shortly.\n"
+
+    messages = [{"role": "system", "content": dynamic_prompt}]
 
     # Inject prior conversation turns for context (if provided)
     if conversation_history:
         messages.extend(conversation_history)
 
-    messages.append({"role": "user", "content": user_content})
+    if media_url:
+        messages.append({
+            "role": "user",
+            "content": [
+                {"type": "text", "text": f"{user_content}\n\n[USER SENT AN IMAGE]"},
+                {"type": "image_url", "image_url": {"url": media_url}}
+            ]
+        })
+    else:
+        messages.append({"role": "user", "content": user_content})
 
     logger.info(
         "[pipeline] generate_reply | label=%s | model=%s | catalogue_items=%d",
@@ -365,6 +389,14 @@ async def generate_reply(
                     },
                     "required": ["customer_name", "issue_type"]
                 }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "notify_owner_receipt",
+                "description": "Trigger this when the customer uploads an image representing a payment receipt. It will notify the business owner to verify the payment.",
+                "parameters": {"type": "object", "properties": {}, "required": []}
             }
         }
     ]
