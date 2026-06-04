@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PackageSearch, Plus, Trash2, Edit2, Archive, Loader2 } from 'lucide-react';
+import { PackageSearch, Plus, Trash2, Edit2, Archive, Loader2, Link, Check } from 'lucide-react';
 import { apiClient } from '@/lib/apiClient';
 
 export function CatalogueContent({ user }) {
@@ -7,6 +7,7 @@ export function CatalogueContent({ user }) {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -197,17 +198,30 @@ export function CatalogueContent({ user }) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {items.map(item => (
                 <div key={item.id} className="border rounded-xl p-5 hover:shadow-md transition-shadow bg-white flex flex-col">
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="font-bold text-lg text-gray-900 line-clamp-1" title={item.name}>{item.name}</h3>
-                    <div className="flex gap-1 ml-2 shrink-0">
-                      <button onClick={() => handleOpenModal(item)} className="p-1.5 text-gray-400 hover:text-[#4F46E5] hover:bg-indigo-50 rounded-md transition-colors">
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => handleDelete(item.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                    <div className="flex justify-between items-start mb-3">
+                      <h3 className="font-bold text-lg text-gray-900 line-clamp-1" title={item.name}>{item.name}</h3>
+                      <div className="flex gap-1 ml-2 shrink-0">
+                        <button 
+                          title="Copy WhatsApp Status Link"
+                          onClick={() => {
+                            const twilioNum = user?.twilio_phone_number?.replace('whatsapp:', '').replace('+', '') || '';
+                            const link = `https://wa.me/${twilioNum}?text=${encodeURIComponent('I want to order: ' + item.name)}`;
+                            navigator.clipboard.writeText(link);
+                            setCopiedId(item.id);
+                            setTimeout(() => setCopiedId(null), 2000);
+                          }} 
+                          className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                        >
+                          {copiedId === item.id ? <Check className="w-4 h-4 text-green-600" /> : <Link className="w-4 h-4" />}
+                        </button>
+                        <button onClick={() => handleOpenModal(item)} className="p-1.5 text-gray-400 hover:text-[#4F46E5] hover:bg-indigo-50 rounded-md transition-colors">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDelete(item.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
                   
                   {item.image_url && (
                     <div className="w-full h-32 mb-3 bg-gray-100 rounded-lg overflow-hidden border">
