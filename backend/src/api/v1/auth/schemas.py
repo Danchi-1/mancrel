@@ -32,6 +32,7 @@ class UserResponse(BaseModel):
     payment_details: Optional[str] = None
     phone: Optional[str] = None
     whatsapp_connected: bool = False
+    twilio_phone_number: Optional[str] = None
 
     class Config:
         from_attributes = True
