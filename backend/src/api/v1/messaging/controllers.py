@@ -16,6 +16,7 @@ import logging
 from typing import Any
 import os
 from datetime import datetime, timedelta
+import base64
 
 import httpx
 from fastapi import HTTPException
@@ -318,6 +319,26 @@ def _label_to_sentiment(label: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Twilio Media Fetcher
+# ---------------------------------------------------------------------------
+async def _fetch_twilio_media(media_url: str, account_sid: str, auth_token: str) -> str:
+    """Downloads media from Twilio and returns a base64 data URI."""
+    try:
+        async with httpx.AsyncClient() as client:
+            auth = (account_sid, auth_token)
+            # Twilio media URLs redirect, so we need follow_redirects=True
+            response = await client.get(media_url, auth=auth, follow_redirects=True)
+            if response.status_code == 200:
+                content_type = response.headers.get("Content-Type", "image/jpeg")
+                b64_data = base64.b64encode(response.content).decode("utf-8")
+                return f"data:{content_type};base64,{b64_data}"
+            else:
+                logger.error(f"Failed to fetch Twilio media: {response.status_code} - {response.text}")
+    except Exception as e:
+        logger.error(f"Error fetching Twilio media: {e}")
+    return media_url # fallback to the original URL
+
+# ---------------------------------------------------------------------------
 # Twilio WhatsApp webhook handler
 # ---------------------------------------------------------------------------
 
@@ -360,6 +381,10 @@ async def process_twilio_webhook_bg(
             )
             db.add(customer)
             await db.flush()
+
+        # Download Twilio media as base64 so OpenRouter/Gemini can read it
+        if media_url and user.twilio_account_sid and user.twilio_auth_token:
+            media_url = await _fetch_twilio_media(media_url, user.twilio_account_sid, user.twilio_auth_token)
 
         # 2. Fetch conversation history (last 10 messages with this sender)
         history_result = await db.execute(
