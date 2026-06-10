@@ -8,6 +8,10 @@ export function CatalogueContent({ user }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [useAI, setUseAI] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [semanticMatches, setSemanticMatches] = useState(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -37,6 +41,26 @@ export function CatalogueContent({ user }) {
   useEffect(() => {
     fetchItems();
   }, []);
+
+  useEffect(() => {
+    if (!useAI || !searchQuery.trim()) {
+      setSemanticMatches(null);
+      return;
+    }
+    const delayDebounceFn = setTimeout(async () => {
+      setAiLoading(true);
+      try {
+        const data = await apiClient.get(`/messaging/search/semantic?query=${encodeURIComponent(searchQuery)}&target=catalogue`);
+        setSemanticMatches(data.matches.map(m => m.id));
+      } catch (err) {
+        console.error("Semantic search failed", err);
+      } finally {
+        setAiLoading(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery, useAI]);
 
   const handleOpenModal = (item = null) => {
     setError('');
@@ -144,6 +168,22 @@ export function CatalogueContent({ user }) {
     }
   };
 
+  const filteredItems = items.filter(item => {
+    if (!searchQuery) return true;
+    
+    if (useAI) {
+      if (!semanticMatches) return true; // still loading or empty
+      return semanticMatches.includes(item.id);
+    }
+    
+    const q = searchQuery.toLowerCase();
+    return (
+      item.name?.toLowerCase().includes(q) ||
+      item.description?.toLowerCase().includes(q) ||
+      item.sku?.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="max-w-6xl mx-auto p-6 h-full flex flex-col">
       <div className="flex items-center justify-between mb-8 shrink-0">
@@ -161,15 +201,43 @@ export function CatalogueContent({ user }) {
       </div>
       
       <div className="bg-white border rounded-xl shadow-sm overflow-hidden flex-1 flex flex-col">
-        <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
-          <div className="text-sm font-medium text-gray-500">
-            {items.length} / 20 items used
+        <div className="p-4 border-b bg-gray-50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="relative w-full max-w-md flex items-center gap-3">
+            <div className="relative flex-1">
+              {aiLoading ? (
+                <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4F46E5] animate-spin" />
+              ) : (
+                <PackageSearch className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${useAI ? 'text-[#4F46E5]' : 'text-gray-400'}`} />
+              )}
+              <input
+                type="text"
+                placeholder={useAI ? "Describe what you're looking for..." : "Search products..."}
+                className={`w-full pl-9 pr-4 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent transition-all ${useAI ? 'bg-indigo-50 border-indigo-200' : ''}`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            
+            <button 
+              onClick={() => setUseAI(!useAI)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap border ${useAI ? 'bg-[#4F46E5] text-white border-[#4F46E5]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              AI Search
+            </button>
           </div>
-          <div className="w-48 h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div 
-              className={`h-full ${items.length >= 20 ? 'bg-red-500' : 'bg-[#4F46E5]'}`} 
-              style={{ width: `${(items.length / 20) * 100}%` }}
-            />
+          <div className="flex items-center gap-4 shrink-0">
+            <div className="text-sm font-medium text-gray-500 hidden sm:block">
+              {items.length} / 20 items used
+            </div>
+            <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden hidden sm:block">
+              <div 
+                className={`h-full ${items.length >= 20 ? 'bg-red-500' : 'bg-[#4F46E5]'}`} 
+                style={{ width: `${(items.length / 20) * 100}%` }}
+              />
+            </div>
           </div>
         </div>
         
@@ -177,26 +245,28 @@ export function CatalogueContent({ user }) {
           <div className="flex-1 flex items-center justify-center">
             <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
           </div>
-        ) : items.length === 0 ? (
+        ) : filteredItems.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
             <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-4">
               <PackageSearch className="w-10 h-10 text-indigo-400" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">No products yet</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">No products found</h3>
             <p className="text-gray-500 max-w-md mb-6">
-              Add your products or services here. The AI assistant will automatically use this information to answer customer questions about prices and availability.
+              {searchQuery ? "Try adjusting your search terms." : "Add your products or services here. The AI assistant will automatically use this information to answer customer questions about prices and availability."}
             </p>
-            <button 
-              onClick={() => handleOpenModal()}
-              className="bg-white border-2 border-gray-200 hover:border-[#4F46E5] text-gray-700 hover:text-[#4F46E5] px-6 py-2.5 rounded-lg font-medium transition-all"
-            >
-              Add your first product
-            </button>
+            {!searchQuery && (
+              <button 
+                onClick={() => handleOpenModal()}
+                className="bg-white border-2 border-gray-200 hover:border-[#4F46E5] text-gray-700 hover:text-[#4F46E5] px-6 py-2.5 rounded-lg font-medium transition-all"
+              >
+                Add your first product
+              </button>
+            )}
           </div>
         ) : (
           <div className="flex-1 overflow-auto p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {items.map(item => (
+              {filteredItems.map(item => (
                 <div key={item.id} className="border rounded-xl p-5 hover:shadow-md transition-shadow bg-white flex flex-col">
                     <div className="flex justify-between items-start mb-3">
                       <h3 className="font-bold text-lg text-gray-900 line-clamp-1" title={item.name}>{item.name}</h3>
