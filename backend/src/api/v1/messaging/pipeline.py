@@ -199,6 +199,12 @@ support_issue             → Calm, empathetic, solution-first. Acknowledge the
 irrelevant_or_inappropriate → Politely redirect to business topics. Do not
                               engage with off-topic or inappropriate content.
 
+IMAGE RULES (CRITICAL)
+---------------------------------------------------------
+- If the user sends an image, you MUST look at the image and describe or identify what is in it to answer their query.
+- NEVER claim that you cannot see or identify images. You have vision capabilities.
+- If they ask if an item in the image is in the catalogue, compare the image contents to the CATALOGUE BLOCK.
+
 RESPONSE FORMAT
 ---------------
 - Keep replies under 120 words unless the customer's complexity demands more.
@@ -343,7 +349,7 @@ async def generate_reply(
         messages.append({
             "role": "user",
             "content": [
-                {"type": "text", "text": f"{user_content}\n\n[USER SENT AN IMAGE]"},
+                {"type": "text", "text": f"{user_content}\n\n[USER SENT AN IMAGE. Please analyze the attached image to answer their query.]"},
                 {"type": "image_url", "image_url": {"url": media_url}}
             ]
         })
@@ -353,7 +359,7 @@ async def generate_reply(
     logger.info(
         "[pipeline] generate_reply | label=%s | model=%s | catalogue_items=%d",
         classification,
-        model_name,
+        model_to_use,
         len(catalogue_items) if catalogue_items else 0,
     )
 
@@ -403,7 +409,8 @@ async def generate_reply(
 
     model_to_use = model_name
     if media_url:
-        model_to_use = "google/gemini-2.5-flash"
+        # Use a more reliable vision model for image recognition
+        model_to_use = "google/gemini-2.5-flash-image"
 
     try:
         response = await client.chat.completions.create(
