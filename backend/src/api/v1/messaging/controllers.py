@@ -383,8 +383,11 @@ async def process_twilio_webhook_bg(
             await db.flush()
 
         # Download Twilio media as base64 so OpenRouter/Gemini can read it
-        if media_url and user.twilio_account_sid and user.twilio_auth_token:
-            media_url = await _fetch_twilio_media(media_url, user.twilio_account_sid, user.twilio_auth_token)
+        fetch_sid = user.twilio_account_sid or os.environ.get("TWILIO_ACCOUNT_SID")
+        fetch_token = user.twilio_auth_token or os.environ.get("TWILIO_AUTH_TOKEN")
+        
+        if media_url and fetch_sid and fetch_token:
+            media_url = await _fetch_twilio_media(media_url, fetch_sid, fetch_token)
 
         # 2. Fetch conversation history (last 10 messages with this sender)
         history_result = await db.execute(
@@ -400,7 +403,10 @@ async def process_twilio_webhook_bg(
         ]
 
         # 3. Classify + generate AI reply
-        label = await _safe_classify(message_text)
+        if not message_text.strip() and media_url:
+            label = "sales_intent"
+        else:
+            label = await _safe_classify(message_text)
     
         # Fetch catalogue
         cat_res = await db.execute(select(CatalogueItem).where(CatalogueItem.user_id == user.id))
