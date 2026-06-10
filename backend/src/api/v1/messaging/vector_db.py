@@ -9,10 +9,10 @@ to use our custom, 8-bit quantized ONNX model to generate math embeddings from t
 
 import os
 import chromadb
-import torch
+import numpy as np
+import onnxruntime as ort
 from chromadb.api.types import EmbeddingFunction, Documents, Embeddings
-from optimum.onnxruntime import ORTModelForFeatureExtraction
-from transformers import AutoTokenizer
+from tokenizers import Tokenizer
 
 # 1. We create a custom Embedding Function that tells ChromaDB how to translate text into numbers.
 class QuantizedONNXEmbeddingFunction(EmbeddingFunction):
@@ -22,9 +22,18 @@ class QuantizedONNXEmbeddingFunction(EmbeddingFunction):
         if not os.path.exists(model_dir):
             raise RuntimeError(f"Quantized model not found at {model_dir}. Run compress_model.py first!")
             
-        print(f"Loading Quantized INT8 AI Model into RAM from {model_dir}...")
-        self.tokenizer = AutoTokenizer.from_pretrained(model_dir)
-        self.model = ORTModelForFeatureExtraction.from_pretrained(model_dir)
+        print(f"Loading Quantized INT8 AI Model into RAM (Lightweight Mode) from {model_dir}...")
+        
+        tokenizer_path = os.path.join(model_dir, "tokenizer.json")
+        model_path = os.path.join(model_dir, "model_quantized.onnx")
+        
+        # Load raw Rust tokenizer (zero PyTorch dependency)
+        self.tokenizer = Tokenizer.from_file(tokenizer_path)
+        self.tokenizer.enable_padding(pad_id=0, pad_token="[PAD]")
+        self.tokenizer.enable_truncation(max_length=256)
+        
+        # Load raw ONNX runtime (zero PyTorch dependency)
+        self.session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
         
     def __call__(self, texts: Documents) -> Embeddings:
         """
@@ -34,19 +43,30 @@ class QuantizedONNXEmbeddingFunction(EmbeddingFunction):
         3. Mean Pooling: Average the meaning of all chunks into one single 384-length math vector.
         """
         # Step 1: Tokenize
-        inputs = self.tokenizer(texts, padding=True, truncation=True, return_tensors="pt")
+        encoded = self.tokenizer.encode_batch(texts)
+        
+        input_ids = np.array([e.ids for e in encoded], dtype=np.int64)
+        attention_mask = np.array([e.attention_mask for e in encoded], dtype=np.int64)
+        token_type_ids = np.array([e.type_ids for e in encoded], dtype=np.int64)
         
         # Step 2: Push through the AI model
-        outputs = self.model(**inputs)
+        outputs = self.session.run(None, {
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+            "token_type_ids": token_type_ids
+        })
         
         # Step 3: Average the output (Mean Pooling)
         token_embeddings = outputs[0]
-        attention_mask = inputs['attention_mask']
-        input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-        embeddings = torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+        input_mask_expanded = np.expand_dims(attention_mask, -1).astype(float)
+        
+        sum_embeddings = np.sum(token_embeddings * input_mask_expanded, axis=1)
+        sum_mask = np.clip(np.sum(input_mask_expanded, axis=1), a_min=1e-9, a_max=None)
+        embeddings = sum_embeddings / sum_mask
         
         # Step 4: Normalize so we can compare vectors easily using Cosine Similarity
-        embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
+        norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+        embeddings = embeddings / norms
         
         return embeddings.tolist()
 
