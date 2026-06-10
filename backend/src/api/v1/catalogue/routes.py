@@ -10,6 +10,11 @@ from api.v1.auth.deps import get_current_user
 from .schemas import CatalogueItemCreate, CatalogueItemUpdate, CatalogueItemResponse
 from .upload import router as upload_router
 
+try:
+    from api.v1.messaging.vector_db import catalogue_collection
+except ImportError:
+    catalogue_collection = None
+
 router = APIRouter(prefix="/catalogue", tags=["Catalogue"])
 router.include_router(upload_router)
 
@@ -57,6 +62,18 @@ async def create_catalogue_item(
     db.add(new_item)
     await db.commit()
     await db.refresh(new_item)
+    
+    if catalogue_collection:
+        doc_text = f"Product: {new_item.name}\nPrice: {new_item.price}\nDescription: {new_item.description}\nSKU: {new_item.sku}"
+        try:
+            catalogue_collection.add(
+                documents=[doc_text],
+                metadatas=[{"user_id": current_user.id, "item_id": new_item.id}],
+                ids=[new_item.id]
+            )
+        except Exception as e:
+            print("Failed to embed catalogue item:", e)
+            
     return new_item
 
 @router.put("/{item_id}", response_model=CatalogueItemResponse)
@@ -80,6 +97,18 @@ async def update_catalogue_item(
 
     await db.commit()
     await db.refresh(item)
+    
+    if catalogue_collection:
+        doc_text = f"Product: {item.name}\nPrice: {item.price}\nDescription: {item.description}\nSKU: {item.sku}"
+        try:
+            catalogue_collection.update(
+                documents=[doc_text],
+                metadatas=[{"user_id": current_user.id, "item_id": item.id}],
+                ids=[item.id]
+            )
+        except Exception as e:
+            print("Failed to update embedded catalogue item:", e)
+            
     return item
 
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -98,4 +127,10 @@ async def delete_catalogue_item(
 
     await db.delete(item)
     await db.commit()
+    
+    if catalogue_collection:
+        try:
+            catalogue_collection.delete(ids=[item_id])
+        except Exception as e:
+            print("Failed to delete embedded catalogue item:", e)
     return None
