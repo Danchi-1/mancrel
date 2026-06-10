@@ -25,6 +25,11 @@ from sqlalchemy.future import select
 
 from db.models import Message, User, CatalogueItem, Deal
 from .pipeline import generate_reply
+
+try:
+    from .vector_db import inbox_collection
+except ImportError:
+    inbox_collection = None
 from .schemas import (
     ClassifyRequest,
     ClassifyResponse,
@@ -195,6 +200,7 @@ async def process_meta_webhook_bg(
             catalogue_items=items,
             conversation_history=conversation_history,
             on_tool_call=on_tool_call,
+            media_url=media_url,
         )
         reply_text = result["reply"]
         confidence = result.get("confidence", 1.0)
@@ -240,6 +246,16 @@ async def process_meta_webhook_bg(
         )
         db.add(inbound_msg)
         await db.flush()  # get ID without committing yet
+        
+        if inbox_collection:
+            try:
+                inbox_collection.add(
+                    documents=[message_text],
+                    metadatas=[{"user_id": user.id, "message_id": inbound_msg.id, "direction": "inbound"}],
+                    ids=[inbound_msg.id]
+                )
+            except Exception as e:
+                logger.error("[meta_webhook_bg] Failed to embed inbound message: %s", e)
 
         # 6. Send reply via Meta Graph API
         reply_queued = False
@@ -279,6 +295,17 @@ async def process_meta_webhook_bg(
                         sentiment="neutral",
                     )
                     db.add(outbound_msg)
+                    await db.flush()
+                    
+                    if inbox_collection:
+                        try:
+                            inbox_collection.add(
+                                documents=[reply_text],
+                                metadatas=[{"user_id": user.id, "message_id": outbound_msg.id, "direction": "outbound"}],
+                                ids=[outbound_msg.id]
+                            )
+                        except Exception as e:
+                            logger.error("[meta_webhook_bg] Failed to embed outbound message: %s", e)
                 else:
                     logger.warning("[meta_webhook] Meta API returned %s: %s", resp.status_code, resp.text)
             except Exception as e:
@@ -503,6 +530,17 @@ async def process_twilio_webhook_bg(
         db.add(inbound_msg)
         await db.flush()
 
+        if inbox_collection:
+            try:
+                doc_text = message_text if message_text.strip() else "[Image Message]"
+                inbox_collection.add(
+                    documents=[doc_text],
+                    metadatas=[{"user_id": user.id, "message_id": inbound_msg.id, "direction": "inbound"}],
+                    ids=[inbound_msg.id]
+                )
+            except Exception as e:
+                logger.error("[twilio_webhook_bg] Failed to embed inbound message: %s", e)
+
         # 5. Send reply via Twilio
         reply_queued = False
         twilio_sid = user.twilio_account_sid or os.environ.get("TWILIO_ACCOUNT_SID")
@@ -537,7 +575,17 @@ async def process_twilio_webhook_bg(
                     sentiment="neutral",
                 )
                 db.add(outbound_msg)
+                await db.flush()
+                
+                if inbox_collection:
+                    try:
+                        inbox_collection.add(
+                            documents=[reply_text],
+                            metadatas=[{"user_id": user.id, "message_id": outbound_msg.id, "direction": "outbound"}],
+                            ids=[outbound_msg.id]
+                        )
+                    except Exception as e:
+                        logger.error("[twilio_webhook_bg] Failed to embed outbound message: %s", e)
             except Exception as e:
                 logger.error("[twilio_webhook] Failed to send Twilio reply: %s", e)
         await db.commit()
-
