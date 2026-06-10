@@ -228,6 +228,51 @@ async def get_inbox(
         })
     return formatted
 
+# ---------------------------------------------------------------------------
+# Semantic Search (Vector DB)
+# ---------------------------------------------------------------------------
+
+@router.get("/search/semantic", summary="Semantic AI Search")
+async def semantic_search(
+    query: str,
+    target: str = Query("inbox", description="Either 'inbox' or 'catalogue'"),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Takes a search query, generates embeddings, and performs a cosine-similarity
+    search against the ChromaDB vector database.
+    """
+    try:
+        from .vector_db import inbox_collection, catalogue_collection
+    except ImportError:
+        raise HTTPException(status_code=500, detail="Vector DB not initialized")
+
+    collection = inbox_collection if target == "inbox" else catalogue_collection
+    if not collection:
+        raise HTTPException(status_code=500, detail="Target collection not initialized")
+
+    try:
+        # ChromaDB automatically embeds the query using our custom embedding function
+        # and compares it against all stored vectors, returning the closest matches.
+        results = collection.query(
+            query_texts=[query],
+            n_results=10,
+            where={"user_id": current_user.id}
+        )
+        
+        # The IDs of the matches are returned in a nested list
+        match_ids = results["ids"][0] if results["ids"] else []
+        distances = results["distances"][0] if results.get("distances") else []
+        
+        # We also return distances so the frontend can show the 'similarity score'
+        matches = [{"id": match_ids[i], "distance": distances[i]} for i in range(len(match_ids))]
+        
+        return {"matches": matches}
+        
+    except Exception as e:
+        logger.error("[semantic_search] Failed to query Vector DB: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # ---------------------------------------------------------------------------
 # Conversation thread — full history with one sender
