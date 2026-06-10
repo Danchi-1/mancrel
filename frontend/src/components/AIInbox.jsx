@@ -55,6 +55,10 @@ export default function AIInbox({ isMarketingPreview = false, isDashboard = fals
   const [replyText, setReplyText] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [sendResult, setSendResult] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [useAI, setUseAI] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [semanticMatches, setSemanticMatches] = useState(null)
 
   useEffect(() => {
     if (isMarketingPreview) {
@@ -77,6 +81,43 @@ export default function AIInbox({ isMarketingPreview = false, isDashboard = fals
     }
     fetchMessages();
   }, [isMarketingPreview]);
+
+  useEffect(() => {
+    if (!useAI || !searchQuery.trim()) {
+      setSemanticMatches(null);
+      return;
+    }
+    const delayDebounceFn = setTimeout(async () => {
+      setAiLoading(true);
+      try {
+        const data = await apiClient.get(`/messaging/search/semantic?query=${encodeURIComponent(searchQuery)}&target=inbox`);
+        setSemanticMatches(data.matches.map(m => m.id));
+      } catch (err) {
+        console.error("Semantic search failed", err);
+      } finally {
+        setAiLoading(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery, useAI]);
+
+  const filteredMessages = messages.filter(msg => {
+    if (!searchQuery) return true;
+    
+    if (useAI) {
+      if (!semanticMatches) return true;
+      return semanticMatches.includes(msg.id);
+    }
+    
+    const q = searchQuery.toLowerCase();
+    return (
+      msg.from?.toLowerCase().includes(q) ||
+      msg.company?.toLowerCase().includes(q) ||
+      msg.subject?.toLowerCase().includes(q) ||
+      msg.full_text?.toLowerCase().includes(q)
+    );
+  });
 
   const handleSendReply = async () => {
     if (!replyText.trim() || !selectedMessage) return;
@@ -137,23 +178,41 @@ export default function AIInbox({ isMarketingPreview = false, isDashboard = fals
           {/* Message List */}
           <div className="lg:col-span-2 card flex flex-col overflow-hidden w-full max-h-[calc(100vh-150px)]">
             <div className="p-4 border-b border-neutral-100 shrink-0">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search messages..."
-                  className="input-field pl-10"
-                  aria-label="Search messages"
-                />
-                <svg className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+              <div className="relative flex items-center gap-3">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder={useAI ? "Describe the message meaning..." : "Search messages..."}
+                    className={`input-field pl-10 ${useAI ? 'bg-indigo-50 border-indigo-200' : ''}`}
+                    aria-label="Search messages"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  {aiLoading ? (
+                    <div className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 rounded-full border-2 border-[#4F46E5] border-t-transparent animate-spin" />
+                  ) : (
+                    <svg className={`w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 ${useAI ? 'text-[#4F46E5]' : 'text-neutral-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  )}
+                </div>
+                
+                <button 
+                  onClick={() => setUseAI(!useAI)}
+                  className={`flex items-center justify-center p-2 rounded-lg transition-colors border ${useAI ? 'bg-[#4F46E5] text-white border-[#4F46E5]' : 'bg-white text-gray-400 border-neutral-200 hover:bg-neutral-50 hover:text-gray-600'}`}
+                  title="Toggle AI Semantic Search"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </button>
               </div>
             </div>
 
             <div className="flex-1 overflow-y-auto divide-y divide-neutral-100 min-h-0">
-              {messages.length === 0 ? (
+              {filteredMessages.length === 0 ? (
                  <div className="p-4 text-center text-neutral-500">No messages found.</div>
-              ) : messages.map((message) => (
+              ) : filteredMessages.map((message) => (
                 <button
                   key={message.id}
                   onClick={() => setSelectedMessage(message)}
