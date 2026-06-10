@@ -7,7 +7,7 @@ and compresses it to an 8-bit integer (INT8) ONNX model using quantization.
 Run this script from your terminal:
 $ cd backend/src
 $ source ../.venv_temp/bin/activate
-$ pip install optimum[onnxruntime] sentence-transformers
+$ pip install optimum[onnxruntime] sentence-transformers # DEV ONLY - Do not add to production requirements.txt!
 $ python3 ml/compress_model.py
 """
 
