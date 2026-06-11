@@ -46,7 +46,7 @@ def main():
     from optimum.onnxruntime.configuration import AutoQuantizationConfig
     from optimum.onnxruntime import ORTQuantizer
     
-    quantizer = ORTQuantizer.from_pretrained(model)
+    quantizer = ORTQuantizer.from_pretrained(save_dir)
     # ARM64 (Macs) use 'avx2' or 'arm64', but 'avx2' works generally for CPUs
     dqconfig = AutoQuantizationConfig.avx2(is_static=False, per_channel=False)
     
