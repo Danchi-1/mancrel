@@ -18,7 +18,7 @@ from tokenizers import Tokenizer
 class QuantizedONNXEmbeddingFunction(EmbeddingFunction):
     def __init__(self):
         # We point it to the tiny compressed INT8 model we generated
-        model_dir = os.path.join(os.path.dirname(__file__), "../../../ml/models/all-MiniLM-L6-v2-int8")
+        model_dir = os.path.join(os.path.dirname(__file__), "../../../ml/all-MiniLM-L6-v2-int8")
         if not os.path.exists(model_dir):
             raise RuntimeError(f"Quantized model not found at {model_dir}. Run compress_model.py first!")
             
