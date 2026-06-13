@@ -6,11 +6,13 @@ import { Menu, LogOut } from "@/components/Icons"
 import { EscalationsContent } from "@/components/EscalationsContent"
 import { CustomersContent } from "@/components/CustomersContent"
 import DealsKanban from "@/components/DealsKaban"
+import OrdersKanban from "@/components/OrdersKanban"
 import AIInbox from "@/components/AIInbox"
 import WhatsAppConnect from "@/components/WhatsAppConnect"
 import { ProfileContent } from "@/components/ProfileContent"
 import { IntegrationsContent } from "@/components/IntegrationsContent"
 import { CatalogueContent } from "@/components/CatalogueContent"
+import KnowledgeBase from "@/components/KnowledgeBase"
 import { CampaignsContent } from "@/components/CampaignsContent"
 import { StatusLinksGuide } from "@/components/StatusLinksGuide"
 import { apiClient } from "@/lib/apiClient"
@@ -148,7 +150,7 @@ export default function DashboardPage() {
           )}
 
           <div className="flex-1 overflow-auto relative">
-            {activeView === "dashboard" && (
+              {activeView === "dashboard" && (
               <div className="max-w-7xl mx-auto p-6">
                   <h1 className="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -169,10 +171,12 @@ export default function DashboardPage() {
               )}
               {activeView === "inbox" && <AIInbox isDashboard={true} />}
               {activeView === "deals" && <DealsKanban />}
+              {activeView === "orders" && <OrdersKanban />}
               {activeView === "escalations" && <EscalationsContent />}
               {activeView === "customers" && <CustomersContent />}
               {activeView === "profile" && <ProfileContent user={user} />}
               {activeView === "catalogue" && <CatalogueContent user={user} />}
+              {activeView === "knowledge" && <KnowledgeBase user={user} />}
               {activeView === "campaigns" && <CampaignsContent user={user} />}
               {activeView === "status_links" && <StatusLinksGuide user={user} />}
               {activeView === "integrations" && <IntegrationsContent user={user} setUser={setUser} />}
