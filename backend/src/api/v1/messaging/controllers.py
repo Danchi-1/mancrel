@@ -175,6 +175,24 @@ async def process_meta_webhook_bg(
             for i in db_items
         ]
 
+        # 3c. Query Knowledge Base (RAG)
+        knowledge_context = ""
+        try:
+            from api.v1.messaging.vector_db import knowledge_collection
+            if knowledge_collection:
+                results = knowledge_collection.query(
+                    query_texts=[message_text],
+                    n_results=2,
+                    where={"user_id": user.id}
+                )
+                if results and results["documents"] and len(results["documents"]) > 0:
+                    matched_docs = results["documents"][0]
+                    if matched_docs:
+                        knowledge_context = "\n---\n".join(matched_docs)
+                        logger.info(f"[RAG] Retrieved {len(matched_docs)} knowledge items for context.")
+        except Exception as e:
+            logger.error(f"[RAG] Failed to query knowledge base: {e}")
+
         # Define the tool call loading callback
         async def on_tool_call():
             if user.wa_phone_number_id and user.wa_access_token:
@@ -197,10 +215,12 @@ async def process_meta_webhook_bg(
             user_id=user.id,
             business_name=user.business_name or "this business",
             customer_name=sender_name or "the customer",
+            customer_phone=sender_phone,
             catalogue_items=items,
             conversation_history=conversation_history,
             on_tool_call=on_tool_call,
             media_url=media_url,
+            knowledge_context=knowledge_context,
         )
         reply_text = result["reply"]
         confidence = result.get("confidence", 1.0)
