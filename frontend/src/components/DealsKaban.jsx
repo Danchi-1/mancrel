@@ -11,6 +11,17 @@ const dummyDeals = [
   { id: '5', company: 'FinServe HQ', contact: 'Amina Bello', value: '₦3.7M', probability: 75, status: 'qualified' },
 ];
 
+const formatCurrency = (value) => {
+  if (typeof value === 'string' && value.startsWith('₦')) return value;
+  
+  if (value >= 1000000) {
+    return `₦${(value / 1000000).toFixed(1)}M`;
+  } else if (value >= 1000) {
+    return `₦${(value / 1000).toFixed(1)}K`;
+  }
+  return `₦${value}`;
+};
+
 export default function DealsKanban({ isMarketingPreview = false }) {
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -137,11 +148,11 @@ export default function DealsKanban({ isMarketingPreview = false }) {
                             {deal.company}
                           </h4>
                           {/* Contact */}
-                          <p className="text-sm text-neutral-600 mb-2">{deal.contact}</p>
+                          <p className="text-sm text-neutral-600 mb-2">{deal.contact || deal.contact_name || 'No Contact'}</p>
                           {/* Value & Probability */}
                           <div className="flex items-center justify-between">
                             <span className="text-lg font-bold text-success">
-                              {deal.value}
+                              {formatCurrency(deal.value)}
                             </span>
                             <div className="flex items-center gap-1 text-xs text-neutral-600">
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
