@@ -82,25 +82,23 @@ export default function AIInbox({ isMarketingPreview = false, isDashboard = fals
     fetchMessages();
   }, [isMarketingPreview]);
 
-  useEffect(() => {
-    if (!useAI || !searchQuery.trim()) {
+  const handleSearch = async () => {
+    if (!useAI) return; // Normal search is handled via client-side filter
+    if (!searchQuery.trim()) {
       setSemanticMatches(null);
       return;
     }
-    const delayDebounceFn = setTimeout(async () => {
-      setAiLoading(true);
-      try {
-        const data = await apiClient.get(`/messaging/search/semantic?query=${encodeURIComponent(searchQuery)}&target=inbox`);
-        setSemanticMatches(data.matches.map(m => m.id));
-      } catch (err) {
-        console.error("Semantic search failed", err);
-      } finally {
-        setAiLoading(false);
-      }
-    }, 500);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery, useAI]);
+    
+    setAiLoading(true);
+    try {
+      const data = await apiClient.get(`/messaging/search/semantic?query=${encodeURIComponent(searchQuery)}&target=inbox`);
+      setSemanticMatches(data.matches.map(m => m.id));
+    } catch (err) {
+      console.error("Semantic search failed", err);
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const filteredMessages = messages.filter(msg => {
     if (!searchQuery) return true;
@@ -186,7 +184,15 @@ export default function AIInbox({ isMarketingPreview = false, isDashboard = fals
                     className={`input-field pl-10 ${useAI ? 'bg-indigo-50 border-indigo-200' : ''}`}
                     aria-label="Search messages"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      if (!useAI && !e.target.value.trim()) setSemanticMatches(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSearch();
+                      }
+                    }}
                   />
                   {aiLoading ? (
                     <div className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 rounded-full border-2 border-[#4F46E5] border-t-transparent animate-spin" />
@@ -198,7 +204,17 @@ export default function AIInbox({ isMarketingPreview = false, isDashboard = fals
                 </div>
                 
                 <button 
-                  onClick={() => setUseAI(!useAI)}
+                  onClick={handleSearch}
+                  className="px-4 py-2 bg-neutral-900 text-white text-sm font-medium rounded-lg hover:bg-neutral-800 transition-colors"
+                >
+                  Search
+                </button>
+
+                <button 
+                  onClick={() => {
+                    setUseAI(!useAI);
+                    if (useAI) setSemanticMatches(null); // Clear matches when turning off AI
+                  }}
                   className={`flex items-center justify-center p-2 rounded-lg transition-colors border ${useAI ? 'bg-[#4F46E5] text-white border-[#4F46E5]' : 'bg-white text-gray-400 border-neutral-200 hover:bg-neutral-50 hover:text-gray-600'}`}
                   title="Toggle AI Semantic Search"
                 >
