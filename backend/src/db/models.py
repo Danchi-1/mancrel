@@ -122,3 +122,30 @@ class CatalogueItem(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     user = relationship("User", backref="catalogue_items")
+
+class KnowledgeItem(Base):
+    __tablename__ = "knowledge_items"
+    
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    title = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    type = Column(String, default="FAQ") # FAQ, Policy, Procedure
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User", backref="knowledge_items")
+
+class Order(Base):
+    __tablename__ = "orders"
+    
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    customer_name = Column(String, nullable=False)
+    customer_phone = Column(String, nullable=False)
+    items_summary = Column(Text, nullable=False)
+    total_amount = Column(Float, nullable=False)
+    status = Column(String, default="Pending Verification") # Pending Verification, Processing, Shipped, Complications
+    tracking_number = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User", backref="orders")
