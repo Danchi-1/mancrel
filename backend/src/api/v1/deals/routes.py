@@ -12,7 +12,7 @@ router = APIRouter(prefix="/deals", tags=["Deals"])
 
 @router.get("", response_model=List[DealResponse])
 async def get_deals(db: AsyncSession = Depends(get_db), current_user = Depends(get_current_user)):
-    stmt = select(Deal)
+    stmt = select(Deal).where(Deal.user_id == current_user.id)
     result = await db.execute(stmt)
     deals = result.scalars().all()
     return deals
@@ -20,6 +20,7 @@ async def get_deals(db: AsyncSession = Depends(get_db), current_user = Depends(g
 @router.post("", response_model=DealResponse)
 async def create_deal(deal_in: DealCreate, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_user)):
     deal = Deal(**deal_in.model_dump())
+    deal.user_id = current_user.id
     db.add(deal)
     await db.commit()
     await db.refresh(deal)
@@ -27,7 +28,7 @@ async def create_deal(deal_in: DealCreate, db: AsyncSession = Depends(get_db), c
 
 @router.patch("/{deal_id}", response_model=DealResponse)
 async def update_deal(deal_id: str, deal_update: DealUpdate, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_user)):
-    stmt = select(Deal).where(Deal.id == deal_id)
+    stmt = select(Deal).where(Deal.id == deal_id, Deal.user_id == current_user.id)
     result = await db.execute(stmt)
     deal = result.scalar_one_or_none()
     
