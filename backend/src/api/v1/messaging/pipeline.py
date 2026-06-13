@@ -252,11 +252,13 @@ async def generate_reply(
     user_id: str = None,
     business_name: str = "this business",
     customer_name: str = "the customer",
+    customer_phone: str = "",
     catalogue_items: Optional[list[dict]] = None,
     conversation_history: Optional[list[dict]] = None,
     on_tool_call: Optional[Callable[[], Awaitable[None]]] = None,
     media_url: str = "",
     payment_details: Optional[str] = None,
+    knowledge_context: str = "",
 ) -> dict:
     """
     Generate a reply draft for an incoming customer message.
@@ -345,6 +347,11 @@ async def generate_reply(
         dynamic_prompt += "\nBUSINESS PAYMENT DETAILS: None set.\n"
         dynamic_prompt += "Rule: If the customer asks to pay, use the create_escalation tool with issue_type 'Missing Payment Details' and tell the customer we'll get back to them shortly.\n"
 
+    if knowledge_context:
+        dynamic_prompt += "\nBUSINESS KNOWLEDGE BASE (FAQs & POLICIES):\n"
+        dynamic_prompt += "Use the following context to accurately answer the customer's question if relevant. Do NOT mention that you are reading from a knowledge base.\n"
+        dynamic_prompt += f"---\n{knowledge_context}\n---\n"
+
     messages = [{"role": "system", "content": dynamic_prompt}]
 
     # Inject prior conversation turns for context (if provided)
@@ -361,6 +368,11 @@ async def generate_reply(
         })
     else:
         messages.append({"role": "user", "content": user_content})
+
+    model_to_use = model_name
+    if media_url:
+        # Use a more reliable vision model for image recognition
+        model_to_use = "google/gemini-2.5-flash-image"
 
     logger.info(
         "[pipeline] generate_reply | label=%s | model=%s | catalogue_items=%d",
@@ -407,16 +419,24 @@ async def generate_reply(
             "type": "function",
             "function": {
                 "name": "notify_owner_receipt",
-                "description": "Trigger this when the customer uploads an image representing a payment receipt. It will notify the business owner to verify the payment.",
-                "parameters": {"type": "object", "properties": {}, "required": []}
+                "description": "Trigger this when the customer uploads an image representing a payment receipt. It will notify the business owner and log a pending order.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "items_summary": {
+                            "type": "string",
+                            "description": "A comma-separated list of items the customer is buying based on the conversation."
+                        },
+                        "total_amount": {
+                            "type": "number",
+                            "description": "The total numeric value of the order."
+                        }
+                    },
+                    "required": ["items_summary", "total_amount"]
+                }
             }
         }
     ]
-
-    model_to_use = model_name
-    if media_url:
-        # Use a more reliable vision model for image recognition
-        model_to_use = "google/gemini-2.5-flash-image"
 
     try:
         response = await client.chat.completions.create(
@@ -469,6 +489,28 @@ async def generate_reply(
                 try: await on_tool_call()
                 except Exception as e: logger.error(e)
                 
+            # Parse tool arguments to create the Order
+            try:
+                import json
+                from db.models import Order
+                args = json.loads(tool_call.function.arguments)
+                items_summary = args.get("items_summary", "Unknown items")
+                total_amount = float(args.get("total_amount", 0.0))
+                
+                new_order = Order(
+                    user_id=user_id,
+                    customer_name=customer_name,
+                    customer_phone=customer_phone,
+                    items_summary=items_summary,
+                    total_amount=total_amount,
+                    status="Pending Verification"
+                )
+                db.add(new_order)
+                await db.flush()
+                logger.info(f"[pipeline] Created Order ID: {new_order.id}")
+            except Exception as e:
+                logger.error(f"[pipeline] Failed to extract order details: {e}")
+
             from api.v1.messaging.email_service import send_receipt_verification_alert
             user_res = await db.execute(select(User).where(User.id == user_id))
             user_obj = user_res.scalar_one_or_none()
@@ -487,11 +529,11 @@ async def generate_reply(
                             tc.messages.create,
                             from_=from_num,
                             to=to_num_wa,
-                            body=f"Action Required: {customer_name} has submitted a payment receipt. Please verify it in your dashboard."
+                            body=f"Action Required: {customer_name} has submitted a payment receipt. Please verify it in your Orders dashboard."
                         )
                     except Exception as e:
                         logger.error(e)
-            tool_result = "Owner notified to verify receipt."
+            tool_result = "Owner notified and order logged."
             messages.append({"role": "tool", "tool_call_id": tool_call.id, "name": tool_call.function.name, "content": tool_result})
             
             response = await client.chat.completions.create(
