@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Package, Truck, AlertCircle, Loader2, Clock } from 'lucide-react';
-import apiClient from '@/utils/api';
+import { apiClient } from '@/lib/apiClient';
 
 export default function OrdersKanban() {
   const [orders, setOrders] = useState([]);

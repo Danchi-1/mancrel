@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, AlertTriangle, Users, LogOut, Briefcase, Inbox, Package, Megaphone, Blocks, Smartphone, BookOpen } from "lucide-react"
+import { LayoutDashboard, AlertTriangle, Users, LogOut, Briefcase, Inbox, Package, Megaphone, Blocks, Smartphone, BookOpen, PieChart } from "lucide-react"
 import { Logo } from "./Logo"
 
 const menuItems = [
@@ -10,6 +10,7 @@ const menuItems = [
   { id: "inbox", icon: Inbox, label: "AI Inbox" },
   { id: "deals", icon: Briefcase, label: "Deals" },
   { id: "orders", icon: Package, label: "Orders" },
+  { id: "analytics", icon: PieChart, label: "Analytics" },
   { id: "escalations", icon: AlertTriangle, label: "Escalation" },
   { id: "customers", icon: Users, label: "Customers" },
   { id: "catalogue", icon: Package, label: "Catalogue" },

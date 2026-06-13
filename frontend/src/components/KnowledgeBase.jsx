@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, BookOpen, AlertCircle, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import apiClient from '@/utils/api';
+import { apiClient } from '@/lib/apiClient';
 
 export default function KnowledgeBase() {
   const [items, setItems] = useState([]);
