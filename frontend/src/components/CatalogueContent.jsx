@@ -42,25 +42,23 @@ export function CatalogueContent({ user }) {
     fetchItems();
   }, []);
 
-  useEffect(() => {
-    if (!useAI || !searchQuery.trim()) {
+  const handleSearch = async () => {
+    if (!useAI) return;
+    if (!searchQuery.trim()) {
       setSemanticMatches(null);
       return;
     }
-    const delayDebounceFn = setTimeout(async () => {
-      setAiLoading(true);
-      try {
-        const data = await apiClient.get(`/messaging/search/semantic?query=${encodeURIComponent(searchQuery)}&target=catalogue`);
-        setSemanticMatches(data.matches.map(m => m.id));
-      } catch (err) {
-        console.error("Semantic search failed", err);
-      } finally {
-        setAiLoading(false);
-      }
-    }, 500);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery, useAI]);
+    
+    setAiLoading(true);
+    try {
+      const data = await apiClient.get(`/messaging/search/semantic?query=${encodeURIComponent(searchQuery)}&target=catalogue`);
+      setSemanticMatches(data.matches.map(m => m.id));
+    } catch (err) {
+      console.error("Semantic search failed", err);
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const handleOpenModal = (item = null) => {
     setError('');
@@ -214,12 +212,30 @@ export function CatalogueContent({ user }) {
                 placeholder={useAI ? "Describe what you're looking for..." : "Search products..."}
                 className={`w-full pl-9 pr-4 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent transition-all ${useAI ? 'bg-indigo-50 border-indigo-200' : ''}`}
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (!useAI && !e.target.value.trim()) setSemanticMatches(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSearch();
+                  }
+                }}
               />
             </div>
             
             <button 
-              onClick={() => setUseAI(!useAI)}
+              onClick={handleSearch}
+              className="px-4 py-2 bg-neutral-900 text-white text-sm font-medium rounded-lg hover:bg-neutral-800 transition-colors"
+            >
+              Search
+            </button>
+
+            <button 
+              onClick={() => {
+                setUseAI(!useAI);
+                if (useAI) setSemanticMatches(null); // Clear matches when turning off AI
+              }}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap border ${useAI ? 'bg-[#4F46E5] text-white border-[#4F46E5]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
