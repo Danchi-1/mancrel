@@ -10,7 +10,6 @@ const menuItems = [
   { id: "inbox", icon: Inbox, label: "AI Inbox" },
   { id: "deals", icon: Briefcase, label: "Deals" },
   { id: "orders", icon: Package, label: "Orders" },
-  { id: "analytics", icon: PieChart, label: "Analytics" },
   { id: "escalations", icon: AlertTriangle, label: "Escalation" },
   { id: "customers", icon: Users, label: "Customers" },
   { id: "catalogue", icon: Package, label: "Catalogue" },

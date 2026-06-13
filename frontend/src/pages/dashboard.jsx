@@ -152,28 +152,32 @@ export default function DashboardPage() {
 
           <div className="flex-1 overflow-auto relative">
               {activeView === "dashboard" && (
-              <div className="max-w-7xl mx-auto p-6">
-                  <h1 className="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white p-6 rounded-xl border shadow-sm">
-                      <h3 className="text-sm font-medium text-gray-500 mb-2">Total Contacts</h3>
-                      <p className="text-3xl font-bold text-gray-900">{stats.total_contacts}</p>
+                <div className="flex flex-col space-y-6">
+                  <div className="max-w-7xl mx-auto w-full px-6 pt-6">
+                    <h1 className="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="bg-white p-6 rounded-xl border shadow-sm">
+                        <h3 className="text-sm font-medium text-gray-500 mb-2">Total Contacts</h3>
+                        <p className="text-3xl font-bold text-gray-900">{stats.total_contacts}</p>
+                      </div>
+                      <div className="bg-white p-6 rounded-xl border shadow-sm">
+                        <h3 className="text-sm font-medium text-gray-500 mb-2">Active Deals</h3>
+                        <p className="text-3xl font-bold text-gray-900">{stats.active_deals}</p>
+                      </div>
+                      <div className="bg-white p-6 rounded-xl border shadow-sm">
+                        <h3 className="text-sm font-medium text-gray-500 mb-2">AI Interactions</h3>
+                        <p className="text-3xl font-bold text-gray-900">{stats.ai_interactions}</p>
+                      </div>
                     </div>
-                    <div className="bg-white p-6 rounded-xl border shadow-sm">
-                      <h3 className="text-sm font-medium text-gray-500 mb-2">Active Deals</h3>
-                      <p className="text-3xl font-bold text-gray-900">{stats.active_deals}</p>
-                    </div>
-                    <div className="bg-white p-6 rounded-xl border shadow-sm">
-                      <h3 className="text-sm font-medium text-gray-500 mb-2">AI Interactions</h3>
-                      <p className="text-3xl font-bold text-gray-900">{stats.ai_interactions}</p>
-                    </div>
+                  </div>
+                  <div className="pb-10 border-t pt-6 bg-gray-50/50">
+                    <AnalyticsContent setActiveView={setActiveView} />
                   </div>
                 </div>
               )}
               {activeView === "inbox" && <AIInbox isDashboard={true} />}
               {activeView === "deals" && <DealsKanban />}
               {activeView === "orders" && <OrdersKanban />}
-              {activeView === "analytics" && <AnalyticsContent setActiveView={setActiveView} />}
               {activeView === "escalations" && <EscalationsContent />}
               {activeView === "customers" && <CustomersContent />}
               {activeView === "profile" && <ProfileContent user={user} />}
