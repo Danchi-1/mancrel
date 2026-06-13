@@ -120,6 +120,8 @@ from api.v1.knowledge.routes import router as knowledge_router
 app.include_router(knowledge_router, prefix="/api/v1")
 from api.v1.orders.routes import router as orders_router
 app.include_router(orders_router, prefix="/api/v1")
+from api.v1.analytics.routes import router as analytics_router
+app.include_router(analytics_router, prefix="/api/v1")
 
 # Future routers will be added here:
 # from api.v1.auth.routes import router as auth_router
