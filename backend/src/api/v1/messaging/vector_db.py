@@ -89,4 +89,9 @@ catalogue_collection = client.get_or_create_collection(
     embedding_function=embedding_fn
 )
 
+knowledge_collection = client.get_or_create_collection(
+    name="knowledge_items",
+    embedding_function=embedding_fn
+)
+
 print("✅ Semantic Vector Database Initialized Successfully!")
