@@ -154,11 +154,26 @@ async def health_check() -> dict:
 async def on_startup() -> None:
     """
     Runs once when the server starts, before handling any requests.
-    Good place to:
-      - Verify required env vars are set
-      - Open DB connection pools
-      - Pre-load heavy models into memory
     """
+    try:
+        from alembic.config import Config
+        from alembic import command
+        import os
+        
+        # Path to alembic.ini (assuming main.py is in src, backend is parent)
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        alembic_ini_path = os.path.join(base_dir, "alembic.ini")
+        
+        if os.path.exists(alembic_ini_path):
+            logger.info("[startup] Running database migrations...")
+            alembic_cfg = Config(alembic_ini_path)
+            command.upgrade(alembic_cfg, "head")
+            logger.info("[startup] Database migrations applied successfully ✓")
+        else:
+            logger.warning(f"[startup] alembic.ini not found at {alembic_ini_path}")
+    except Exception as e:
+        logger.error(f"[startup] Failed to run migrations: {e}")
+
     required = ["OPENROUTER_API_KEY"]
     missing = [k for k in required if not os.environ.get(k)]
     if missing:
