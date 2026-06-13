@@ -79,6 +79,7 @@ class Escalation(Base):
     user_id = Column(String, ForeignKey("users.id"), nullable=True, index=True)
     customer_name = Column(String, nullable=False)
     issue_type = Column(String, nullable=False)
+    priority = Column(String, default="Medium")
     channel = Column(String, nullable=False) # email, api, phone
     assigned_to = Column(String, nullable=True)
     status = Column(String, default="Open") # Open, Resolved
