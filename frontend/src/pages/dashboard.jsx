@@ -7,6 +7,7 @@ import { EscalationsContent } from "@/components/EscalationsContent"
 import { CustomersContent } from "@/components/CustomersContent"
 import DealsKanban from "@/components/DealsKaban"
 import OrdersKanban from "@/components/OrdersKanban"
+import AnalyticsContent from "@/components/AnalyticsContent"
 import AIInbox from "@/components/AIInbox"
 import WhatsAppConnect from "@/components/WhatsAppConnect"
 import { ProfileContent } from "@/components/ProfileContent"
@@ -172,6 +173,7 @@ export default function DashboardPage() {
               {activeView === "inbox" && <AIInbox isDashboard={true} />}
               {activeView === "deals" && <DealsKanban />}
               {activeView === "orders" && <OrdersKanban />}
+              {activeView === "analytics" && <AnalyticsContent setActiveView={setActiveView} />}
               {activeView === "escalations" && <EscalationsContent />}
               {activeView === "customers" && <CustomersContent />}
               {activeView === "profile" && <ProfileContent user={user} />}
